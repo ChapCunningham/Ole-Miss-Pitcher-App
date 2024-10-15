@@ -180,20 +180,14 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls):
         ExitSpeed=('ExitSpeed', lambda x: x.mean() if x.notna().sum() > 0 else 'N/A')
     ).reset_index()
 
-    # Rename the table and display it in Streamlit
+    # Apply formatting to the numeric columns
+    for col in ['RelSpeed', 'SpinRate', 'Tilt', 'RelHeight', 'RelSide', 'Extension',
+                'InducedVertBreak', 'HorizontalBreak', 'VertApprAngle']:
+        grouped_data[col] = grouped_data[col].apply(lambda x: f'{x:.2f}' if pd.notna(x) else 'N/A')
+    
+    # Display the table in Streamlit
     st.subheader("Pitch Traits:")
-    st.dataframe(grouped_data.style.format({
-        'RelSpeed': '{:.2f}',
-        'SpinRate': '{:.2f}',
-        'Tilt': '{:.2f}',
-        'RelHeight': '{:.2f}',
-        'RelSide': '{:.2f}',
-        'Extension': '{:.2f}',
-        'InducedVertBreak': '{:.2f}',
-        'HorizontalBreak': '{:.2f}',
-        'VertApprAngle': '{:.2f}',
-        'ExitSpeed': '{:.2f}'
-    }))
+    st.dataframe(grouped_data)
 
 # Generate and display the pitch traits table
 generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls)
