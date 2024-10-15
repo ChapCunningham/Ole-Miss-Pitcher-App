@@ -11,7 +11,7 @@ test_df = pd.read_csv(file_path)
 
 # Streamlit app layout
 st.title("Ole Miss Pitcher Heat Maps (Fall 2024)")
-st.subheader("Chap Cunningham")
+
 
 # Dropdown widget to select the pitcher
 pitcher_name = st.selectbox(
