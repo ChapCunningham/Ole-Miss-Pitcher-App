@@ -122,7 +122,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
         fig.delaxes(axes[j])
 
     # Add a main title for all the heatmaps
-    plt.suptitle(f"{pitcher_name} Heat Maps (Batter: {batter_side}, Strikes: {strikes}, Balls: {balls})", fontsize=20, fontweight='bold')
+    plt.suptitle(f"{pitcher_name} Heat Maps (Batter: {batter_side}, Strikes: {strikes}, Balls: {balls})", fontsize=60, fontweight='bold')
     
     # Adjust the layout to prevent overlap
     plt.tight_layout(rect=[0, 0, 1, 0.95])  # Leave space at the top for suptitle
