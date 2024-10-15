@@ -112,7 +112,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
         ax.set_ylabel('')
         
         # Set pitch type as title
-        ax.set_title(f"{pitch_type}", fontsize=20)
+        ax.set_title(f"{pitch_type}", fontsize=40)
 
         # Equal aspect ratio
         ax.set_aspect('equal', adjustable='box')
