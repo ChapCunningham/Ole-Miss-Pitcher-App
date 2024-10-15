@@ -144,6 +144,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
 plot_heatmaps(pitcher_name, batter_side, strikes, balls)
 
 # Function to generate the table with mean values and pitch counts
+# Function to generate the table with mean values and pitch counts
 def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls):
     # Filter data for the selected pitcher and batter side
     pitcher_data = test_df[
@@ -169,8 +170,11 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls):
         InducedVertBreak=('InducedVertBreak', 'mean'),
         HorizontalBreak=('HorzBreak', 'mean'),
         VertApprAngle=('VertApprAngle', 'mean'),
-        ExitSpeed=('ExitSpeed', lambda x: x.mean() if x.count() > 0 else 'N/A')
+        ExitSpeed=('ExitSpeed', lambda x: x.mean() if x.notna().any() else 'N/A')  # Handle missing ExitSpeed
     ).reset_index()
+
+    # Fill any NaN values with 'N/A' to avoid errors
+    grouped_data = grouped_data.fillna('N/A')
 
     # Rename the table and display it in Streamlit
     st.subheader("Pitch Traits:")
@@ -184,8 +188,9 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls):
         'InducedVertBreak': '{:.2f}',
         'HorizontalBreak': '{:.2f}',
         'VertApprAngle': '{:.2f}',
-        'ExitSpeed': '{:.2f}'
+        'ExitSpeed': '{}'
     }))
 
 # Generate and display the pitch traits table
 generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls)
+
