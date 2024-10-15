@@ -12,7 +12,6 @@ test_df = pd.read_csv(file_path)
 # Streamlit app layout
 st.title("Ole Miss Pitcher Heat Maps (Fall 2024)")
 
-
 # Dropdown widget to select the pitcher
 pitcher_name = st.selectbox(
     "Select Pitcher:",
@@ -143,3 +142,50 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
 
 # Generate heatmaps based on selections
 plot_heatmaps(pitcher_name, batter_side, strikes, balls)
+
+# Function to generate the table with mean values and pitch counts
+def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls):
+    # Filter data for the selected pitcher and batter side
+    pitcher_data = test_df[
+        (test_df['Pitcher'] == pitcher_name) &
+        (test_df['BatterSide'] == batter_side)
+    ]
+
+    # Apply filtering for strikes and balls if 'All' is not selected
+    if strikes != 'All':
+        pitcher_data = pitcher_data[pitcher_data['Strikes'] == strikes]
+    if balls != 'All':
+        pitcher_data = pitcher_data[pitcher_data['Balls'] == balls]
+
+    # Group by 'TaggedPitchType' and calculate mean values for each group
+    grouped_data = pitcher_data.groupby('TaggedPitchType').agg(
+        Count=('TaggedPitchType', 'size'),
+        RelSpeed=('RelSpeed', 'mean'),
+        SpinRate=('SpinRate', 'mean'),
+        Tilt=('Tilt', 'mean'),
+        RelHeight=('RelHeight', 'mean'),
+        RelSide=('RelSide', 'mean'),
+        Extension=('Extension', 'mean'),
+        InducedVertBreak=('InducedVertBreak', 'mean'),
+        HorizontalBreak=('HorzBreak', 'mean'),
+        VertApprAngle=('VertApprAngle', 'mean'),
+        ExitSpeed=('ExitSpeed', lambda x: x.mean() if x.count() > 0 else 'N/A')
+    ).reset_index()
+
+    # Rename the table and display it in Streamlit
+    st.subheader("Pitch Traits:")
+    st.dataframe(grouped_data.style.format({
+        'RelSpeed': '{:.2f}',
+        'SpinRate': '{:.2f}',
+        'Tilt': '{:.2f}',
+        'RelHeight': '{:.2f}',
+        'RelSide': '{:.2f}',
+        'Extension': '{:.2f}',
+        'InducedVertBreak': '{:.2f}',
+        'HorizontalBreak': '{:.2f}',
+        'VertApprAngle': '{:.2f}',
+        'ExitSpeed': '{:.2f}'
+    }))
+
+# Generate and display the pitch traits table
+generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls)
