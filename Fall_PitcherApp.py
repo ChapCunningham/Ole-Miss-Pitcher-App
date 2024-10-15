@@ -54,9 +54,12 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
     # Get unique pitch types thrown by the selected pitcher
     unique_pitch_types = pitcher_data['TaggedPitchType'].unique()
 
-    # Create new subplots side by side based on the number of unique pitch types
+    # Adjust the size of the figure and subplots
     n_pitch_types = len(unique_pitch_types)
-    fig, axes = plt.subplots(1, n_pitch_types, figsize=(5 * n_pitch_types, 6))
+    fig_width = 6 * n_pitch_types  # Increase width for each pitch type
+    fig_height = 8  # Increase the height of the figure
+    
+    fig, axes = plt.subplots(1, n_pitch_types, figsize=(fig_width, fig_height))
     
     if n_pitch_types == 1:
         axes = [axes]  # Ensure axes is a list if there's only one subplot
