@@ -10,7 +10,8 @@ file_path = 'AllTrackman_fall_2024_df.csv'  # Replace with the correct path in y
 test_df = pd.read_csv(file_path)
 
 # Streamlit app layout
-st.title("Pitcher Heat Maps")
+st.title("Ole Miss Pitcher Heat Maps (Fall 2024)")
+st.subheader("Chap Cunningham")
 
 # Dropdown widget to select the pitcher
 pitcher_name = st.selectbox(
