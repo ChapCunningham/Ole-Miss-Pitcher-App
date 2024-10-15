@@ -9,6 +9,14 @@ import math
 file_path = 'AllTrackman_fall_2024_df.csv'  # Replace with the correct path in your Streamlit setup
 test_df = pd.read_csv(file_path)
 
+# Ensure numeric conversion for the columns where aggregation will be done
+numeric_columns = ['RelSpeed', 'SpinRate', 'Tilt', 'RelHeight', 'RelSide', 
+                   'Extension', 'InducedVertBreak', 'HorzBreak', 'VertApprAngle', 'ExitSpeed']
+
+# Coerce non-numeric values to NaN
+for col in numeric_columns:
+    test_df[col] = pd.to_numeric(test_df[col], errors='coerce')
+
 # Streamlit app layout
 st.title("Ole Miss Pitcher Heat Maps (Fall 2024)")
 
@@ -144,7 +152,6 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
 plot_heatmaps(pitcher_name, batter_side, strikes, balls)
 
 # Function to generate the table with mean values and pitch counts
-# Function to generate the table with mean values and pitch counts
 def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls):
     # Filter data for the selected pitcher and batter side
     pitcher_data = test_df[
@@ -170,11 +177,8 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls):
         InducedVertBreak=('InducedVertBreak', 'mean'),
         HorizontalBreak=('HorzBreak', 'mean'),
         VertApprAngle=('VertApprAngle', 'mean'),
-        ExitSpeed=('ExitSpeed', lambda x: x.mean() if x.notna().any() else 'N/A')  # Handle missing ExitSpeed
+        ExitSpeed=('ExitSpeed', lambda x: x.mean() if x.notna().sum() > 0 else 'N/A')
     ).reset_index()
-
-    # Fill any NaN values with 'N/A' to avoid errors
-    grouped_data = grouped_data.fillna('N/A')
 
     # Rename the table and display it in Streamlit
     st.subheader("Pitch Traits:")
@@ -188,9 +192,8 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls):
         'InducedVertBreak': '{:.2f}',
         'HorizontalBreak': '{:.2f}',
         'VertApprAngle': '{:.2f}',
-        'ExitSpeed': '{}'
+        'ExitSpeed': '{:.2f}'
     }))
 
 # Generate and display the pitch traits table
 generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls)
-
