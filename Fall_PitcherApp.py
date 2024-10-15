@@ -158,6 +158,15 @@ def calculate_in_zone(df):
                  (df['PlateLocSide'] >= -0.708) & (df['PlateLocSide'] <= 0.708)]
     return in_zone
 
+# Function to manually format the dataframe before displaying
+def format_dataframe(df):
+    # Ensure columns are numeric and fill NaN with 'N/A'
+    for col in df.columns:
+        if df[col].dtype.kind in 'f':  # if it's a float type column
+            df[col] = df[col].round(2)
+        df[col] = df[col].fillna('N/A')
+    return df
+
 # Function to generate the pitch traits table
 def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls):
     # Filter data for the selected pitcher and batter side
@@ -190,20 +199,12 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls):
     # Sort by Count (most thrown to least thrown)
     grouped_data = grouped_data.sort_values(by='Count', ascending=False)
 
+    # Format the data before displaying
+    formatted_data = format_dataframe(grouped_data)
+
     # Display the table in Streamlit
     st.subheader("Pitch Traits:")
-    st.dataframe(grouped_data.style.format({
-        'RelSpeed': '{:.2f}',
-        'SpinRate': '{:.2f}',
-                'Tilt': '{:.2f}',
-        'RelHeight': '{:.2f}',
-        'RelSide': '{:.2f}',
-        'Extension': '{:.2f}',
-        'InducedVertBreak': '{:.2f}',
-        'HorizontalBreak': '{:.2f}',
-        'VertApprAngle': '{:.2f}',
-        'ExitSpeed': '{:.2f}'
-    }))
+    st.dataframe(formatted_data)
 
 # Function to generate the plate discipline table
 def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls):
@@ -252,19 +253,13 @@ def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls):
     # Sort by Count (most thrown to least thrown)
     plate_discipline_data = plate_discipline_data.sort_values(by='Count', ascending=False)
 
+    # Format the data before displaying
+    formatted_data = format_dataframe(plate_discipline_data)
+
     # Display the table in Streamlit
     st.subheader("Plate Discipline:")
-    st.dataframe(plate_discipline_data.style.format({
-        'InZone%': '{:.2f}',
-        'Swing%': '{:.2f}',
-        'Whiff%': '{:.2f}',
-        'Chase%': '{:.2f}',
-        'InZoneWhiff%': '{:.2f}',
-        'Pitch%': '{:.2f}',
-        'Count': '{:.0f}'
-    }))
+    st.dataframe(formatted_data)
 
 # Generate and display the pitch traits and plate discipline tables
 generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls)
 generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls)
-
