@@ -5,7 +5,7 @@ import seaborn as sns
 import pandas as pd
 
 # Load the real dataset
-file_path = '/Users/chap/Documents/pybaseball Projects/pybaseball/College DATA/Ole Miss 2024-2025/Fall CSVs/AllTrackman_fall_2024_df.csv'  # Replace with the correct path in your Streamlit setup
+file_path = 'AllTrackman_fall_2024_df.csv'  # Replace with the correct path in your Streamlit setup
 test_df = pd.read_csv(file_path)
 
 # Streamlit app layout
