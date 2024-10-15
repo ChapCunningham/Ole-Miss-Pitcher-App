@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import seaborn as sns
 import pandas as pd
+import math
 
 # Load the real dataset
 file_path = 'AllTrackman_fall_2024_df.csv'  # Replace with the correct path in your Streamlit setup
@@ -54,18 +55,21 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
     # Get unique pitch types thrown by the selected pitcher
     unique_pitch_types = pitcher_data['TaggedPitchType'].unique()
 
-    # Adjust the size of the figure and subplots
+    # Limit number of subplots per row (e.g., 3 per row)
     n_pitch_types = len(unique_pitch_types)
-    fig_width = 12 * n_pitch_types  # Increase width for each pitch type
-    fig_height = 16  # Increase the height of the figure
+    plots_per_row = 3  # Set number of plots per row
+    n_rows = math.ceil(n_pitch_types / plots_per_row)  # Calculate the number of rows needed
     
-    fig, axes = plt.subplots(1, n_pitch_types, figsize=(fig_width, fig_height))
-    
-    if n_pitch_types == 1:
-        axes = [axes]  # Ensure axes is a list if there's only one subplot
+    # Adjust figure size dynamically
+    fig_width = 6 * plots_per_row  # Set width based on number of plots per row
+    fig_height = 8 * n_rows  # Set height to fit all rows
+
+    # Create subplots with the appropriate number of rows and columns
+    fig, axes = plt.subplots(n_rows, plots_per_row, figsize=(fig_width, fig_height))
+    axes = axes.flatten()  # Flatten axes array for easier access
 
     # Loop over each unique pitch type and create heatmaps
-    for ax, pitch_type in zip(axes, unique_pitch_types):
+    for i, (ax, pitch_type) in enumerate(zip(axes, unique_pitch_types)):
         pitch_type_data = pitcher_data[pitcher_data['TaggedPitchType'] == pitch_type]
         
         # Plot heatmap using kdeplot (kernel density estimation)
@@ -108,13 +112,17 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
         ax.set_ylabel('')
         
         # Set pitch type as title
-        ax.set_title(f"{pitch_type}", fontsize=24)
+        ax.set_title(f"{pitch_type}", fontsize=14)
 
         # Equal aspect ratio
         ax.set_aspect('equal', adjustable='box')
+    
+    # Remove any unused subplots
+    for j in range(i + 1, len(axes)):
+        fig.delaxes(axes[j])
 
     # Add a main title for all the heatmaps
-    plt.suptitle(f"{pitcher_name} Heat Maps (Batter: {batter_side}, Strikes: {strikes}, Balls: {balls})", fontsize=16, fontweight='bold')
+    plt.suptitle(f"{pitcher_name} Heat Maps (Batter: {batter_side}, Strikes: {strikes}, Balls: {balls})", fontsize=20, fontweight='bold')
     
     # Adjust the layout to prevent overlap
     plt.tight_layout(rect=[0, 0, 1, 0.95])  # Leave space at the top for suptitle
