@@ -56,8 +56,8 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
 
     # Adjust the size of the figure and subplots
     n_pitch_types = len(unique_pitch_types)
-    fig_width = 6 * n_pitch_types  # Increase width for each pitch type
-    fig_height = 8  # Increase the height of the figure
+    fig_width = 12 * n_pitch_types  # Increase width for each pitch type
+    fig_height = 16  # Increase the height of the figure
     
     fig, axes = plt.subplots(1, n_pitch_types, figsize=(fig_width, fig_height))
     
