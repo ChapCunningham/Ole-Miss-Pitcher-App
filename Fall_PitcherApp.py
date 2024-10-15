@@ -61,8 +61,8 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
     n_rows = math.ceil(n_pitch_types / plots_per_row)  # Calculate the number of rows needed
     
     # Adjust figure size dynamically
-    fig_width = 6 * plots_per_row  # Set width based on number of plots per row
-    fig_height = 8 * n_rows  # Set height to fit all rows
+    fig_width = 12 * plots_per_row  # Set width based on number of plots per row
+    fig_height = 16 * n_rows  # Set height to fit all rows
 
     # Create subplots with the appropriate number of rows and columns
     fig, axes = plt.subplots(n_rows, plots_per_row, figsize=(fig_width, fig_height))
@@ -112,7 +112,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
         ax.set_ylabel('')
         
         # Set pitch type as title
-        ax.set_title(f"{pitch_type}", fontsize=14)
+        ax.set_title(f"{pitch_type}", fontsize=20)
 
         # Equal aspect ratio
         ax.set_aspect('equal', adjustable='box')
