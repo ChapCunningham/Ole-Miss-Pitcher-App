@@ -161,6 +161,7 @@ def calculate_in_zone(df):
 # Function to manually format the dataframe before displaying
 def format_dataframe(df):
     # Ensure columns are numeric and fill NaN with 'N/A'
+    df = df.copy()  # Create a copy to avoid warnings
     for col in df.columns:
         if df[col].dtype.kind in 'f':  # if it's a float type column
             df[col] = df[col].round(2)
