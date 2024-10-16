@@ -166,11 +166,16 @@ def calculate_in_zone(df):
     return in_zone
 
 # Function to manually format the dataframe before displaying
+# Function to manually format the dataframe before displaying
 def format_dataframe(df):
     # Ensure columns are numeric and fill NaN with 'N/A'
     df = df.copy()  # Create a copy to avoid warnings
+    percent_columns = ['InZone%', 'Swing%', 'Whiff%', 'Chase%', 'InZoneWhiff%']
+    
     for col in df.columns:
-        if df[col].dtype.kind in 'f':  # if it's a float type column
+        if col in percent_columns:
+            df[col] = df[col].apply(lambda x: f"{round(x, 2)}%" if pd.notna(x) else 'N/A')  # Add % symbol to percentage columns
+        elif df[col].dtype.kind in 'f':  # if it's a float type column
             df[col] = df[col].apply(lambda x: round(x, 2) if pd.notna(x) else 'N/A')
         else:
             df[col] = df[col].fillna('N/A')  # Fill NaN with N/A for non-float columns
