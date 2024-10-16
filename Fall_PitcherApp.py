@@ -48,12 +48,11 @@ balls = st.selectbox(
 )
 
 # Function to filter data based on the dropdown selections
+# Function to filter data based on the dropdown selections
 def filter_data(pitcher_name, batter_side, strikes, balls):
     # Filter data for the selected pitcher
     pitcher_data = test_df[test_df['Pitcher'] == pitcher_name]
-  # Drop rows with NaN in critical columns
-    
-    
+
     # Apply filtering for batter side, including 'Both' option
     if batter_side != 'Both':
         pitcher_data = pitcher_data[pitcher_data['BatterSide'] == batter_side]
@@ -67,6 +66,7 @@ def filter_data(pitcher_name, batter_side, strikes, balls):
         pitcher_data = pitcher_data[pitcher_data['Balls'] == balls]
     
     return pitcher_data
+
 
 # Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
 # Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
