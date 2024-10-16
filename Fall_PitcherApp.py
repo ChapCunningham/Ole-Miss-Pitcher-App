@@ -20,6 +20,9 @@ for col in numeric_columns:
 # Streamlit app layout
 st.title("Ole Miss Pitcher Heat Maps (Fall 2024)")
 
+
+
+
 # Dropdown widget to select the pitcher
 pitcher_name = st.selectbox(
     "Select Pitcher:",
@@ -48,6 +51,8 @@ balls = st.selectbox(
 def filter_data(pitcher_name, batter_side, strikes, balls):
     # Filter data for the selected pitcher
     pitcher_data = test_df[test_df['Pitcher'] == pitcher_name]
+  # Drop rows with NaN in critical columns
+    pitcher_data = pitcher_data.dropna(subset=['PlateLocSide', 'PlateLocHeight'])
     
     # Apply filtering for batter side, including 'Both' option
     if batter_side != 'Both':
