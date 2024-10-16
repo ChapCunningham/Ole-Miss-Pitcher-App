@@ -52,7 +52,7 @@ def filter_data(pitcher_name, batter_side, strikes, balls):
     # Filter data for the selected pitcher
     pitcher_data = test_df[test_df['Pitcher'] == pitcher_name]
   # Drop rows with NaN in critical columns
-    pitcher_data = pitcher_data.dropna(subset=['PlateLocSide', 'PlateLocHeight'])
+    
     
     # Apply filtering for batter side, including 'Both' option
     if batter_side != 'Both':
@@ -69,11 +69,27 @@ def filter_data(pitcher_name, batter_side, strikes, balls):
     return pitcher_data
 
 # Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
+# Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
 def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
-    pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls)
+    # Filter data for the selected pitcher and batter side
+    pitcher_data = test_df[
+        (test_df['Pitcher'] == pitcher_name) &
+        (test_df['BatterSide'] == batter_side)
+    ]
+    
+    # Apply filtering for strikes if 'All' is not selected
+    if strikes != 'All':
+        pitcher_data = pitcher_data[pitcher_data['Strikes'] == strikes]
+    
+    # Apply filtering for balls if 'All' is not selected
+    if balls != 'All':
+        pitcher_data = pitcher_data[pitcher_data['Balls'] == balls]
+    
+    # Remove rows where PlateLocSide or PlateLocHeight is NaN, for plotting purposes only
+    plot_data = pitcher_data.dropna(subset=['PlateLocSide', 'PlateLocHeight'])
     
     # Get unique pitch types thrown by the selected pitcher
-    unique_pitch_types = pitcher_data['TaggedPitchType'].unique()
+    unique_pitch_types = plot_data['TaggedPitchType'].unique()
 
     # Limit number of subplots per row (e.g., 3 per row)
     n_pitch_types = len(unique_pitch_types)
@@ -90,7 +106,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
 
     # Loop over each unique pitch type and create heatmaps
     for i, (ax, pitch_type) in enumerate(zip(axes, unique_pitch_types)):
-        pitch_type_data = pitcher_data[pitcher_data['TaggedPitchType'] == pitch_type]
+        pitch_type_data = plot_data[plot_data['TaggedPitchType'] == pitch_type]
         
         # Plot heatmap using kdeplot (kernel density estimation)
         sns.kdeplot(
