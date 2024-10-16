@@ -71,20 +71,10 @@ def filter_data(pitcher_name, batter_side, strikes, balls):
 # Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
 # Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
 # Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
+# Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
 def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
     # Filter data for the selected pitcher and batter side
-    pitcher_data = test_df[
-        (test_df['Pitcher'] == pitcher_name) &
-        (test_df['BatterSide'] == batter_side)
-    ]
-    
-    # Apply filtering for strikes if 'All' is not selected
-    if strikes != 'All':
-        pitcher_data = pitcher_data[pitcher_data['Strikes'] == strikes]
-    
-    # Apply filtering for balls if 'All' is not selected
-    if balls != 'All':
-        pitcher_data = pitcher_data[pitcher_data['Balls'] == balls]
+    pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls)
     
     # Remove rows where PlateLocSide or PlateLocHeight is NaN, for plotting purposes only
     plot_data = pitcher_data.dropna(subset=['PlateLocSide', 'PlateLocHeight'])
@@ -182,6 +172,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
     
     # Show the updated figure
     st.pyplot(fig)
+
 
 
 # Generate heatmaps based on selections
