@@ -70,6 +70,7 @@ def filter_data(pitcher_name, batter_side, strikes, balls):
 
 # Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
 # Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
+# Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
 def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
     # Filter data for the selected pitcher and batter side
     pitcher_data = test_df[
@@ -88,6 +89,11 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
     # Remove rows where PlateLocSide or PlateLocHeight is NaN, for plotting purposes only
     plot_data = pitcher_data.dropna(subset=['PlateLocSide', 'PlateLocHeight'])
     
+    # Check if plot_data is empty after dropping NaN values
+    if plot_data.empty:
+        st.write("No data available to plot for the selected parameters.")
+        return
+
     # Get unique pitch types thrown by the selected pitcher
     unique_pitch_types = plot_data['TaggedPitchType'].unique()
 
@@ -108,26 +114,27 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
     for i, (ax, pitch_type) in enumerate(zip(axes, unique_pitch_types)):
         pitch_type_data = plot_data[plot_data['TaggedPitchType'] == pitch_type]
         
-        # Plot heatmap using kdeplot (kernel density estimation)
-        sns.kdeplot(
-            x=pitch_type_data['PlateLocSide'], 
-            y=pitch_type_data['PlateLocHeight'], 
-            fill=True, 
-            cmap='Spectral_r', 
-            levels=6, 
-            ax=ax,
-            bw_adjust=0.5  # Adjust bandwidth for smoothness
-        )
-        
-        # Plot individual pitch locations as dots
-        ax.scatter(
-            pitch_type_data['PlateLocSide'], 
-            pitch_type_data['PlateLocHeight'], 
-            color='black',  # Color for the dots
-            edgecolor='white',  # Add a white border to make dots stand out
-            s=300,  # Size of the dots
-            alpha=0.7  # Transparency to allow overlap
-        )
+        if not pitch_type_data.empty:
+            # Plot heatmap using kdeplot (kernel density estimation)
+            sns.kdeplot(
+                x=pitch_type_data['PlateLocSide'], 
+                y=pitch_type_data['PlateLocHeight'], 
+                fill=True, 
+                cmap='Spectral_r', 
+                levels=6, 
+                ax=ax,
+                bw_adjust=0.5  # Adjust bandwidth for smoothness
+            )
+            
+            # Plot individual pitch locations as dots
+            ax.scatter(
+                pitch_type_data['PlateLocSide'], 
+                pitch_type_data['PlateLocHeight'], 
+                color='black',  # Color for the dots
+                edgecolor='white',  # Add a white border to make dots stand out
+                s=300,  # Size of the dots
+                alpha=0.7  # Transparency to allow overlap
+            )
         
         # Add strike zone as a rectangle with black edgecolor
         strike_zone_width = 17 / 12  # 1.41667 feet
@@ -175,6 +182,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
     
     # Show the updated figure
     st.pyplot(fig)
+
 
 # Generate heatmaps based on selections
 plot_heatmaps(pitcher_name, batter_side, strikes, balls)
