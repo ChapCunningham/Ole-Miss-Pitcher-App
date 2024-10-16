@@ -191,14 +191,14 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls):
     grouped_data = pitcher_data.groupby('TaggedPitchType').agg(
         Count=('TaggedPitchType', 'size'),
         RelSpeed=('RelSpeed', 'mean'),
+        InducedVertBreak=('InducedVertBreak', 'mean'),
+        HorizontalBreak=('HorzBreak', 'mean'), 
         SpinRate=('SpinRate', 'mean'),
-        Tilt=('Tilt', 'mean'),
         RelHeight=('RelHeight', 'mean'),
         RelSide=('RelSide', 'mean'),
         Extension=('Extension', 'mean'),
-        InducedVertBreak=('InducedVertBreak', 'mean'),
-        HorizontalBreak=('HorzBreak', 'mean'),
         VertApprAngle=('VertApprAngle', 'mean'),
+        Tilt=('Tilt', 'mean'),
         ExitSpeed=('ExitSpeed', lambda x: x.mean() if x.notna().sum() > 0 else 'N/A')
     ).reset_index()
 
