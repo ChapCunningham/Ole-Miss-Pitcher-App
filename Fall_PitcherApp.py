@@ -164,8 +164,9 @@ def format_dataframe(df):
     df = df.copy()  # Create a copy to avoid warnings
     for col in df.columns:
         if df[col].dtype.kind in 'f':  # if it's a float type column
-            df[col] = df[col].round(2)
-        df[col] = df[col].fillna('N/A')  # Fill NaN with N/A
+            df[col] = df[col].apply(lambda x: round(x, 2) if pd.notna(x) else 'N/A')
+        else:
+            df[col] = df[col].fillna('N/A')  # Fill NaN with N/A for non-float columns
     return df
 
 # Function to generate the pitch traits table
