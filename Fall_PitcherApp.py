@@ -101,30 +101,34 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
     axes = axes.flatten()  # Flatten axes array for easier access
 
     # Loop over each unique pitch type and create heatmaps
-    for i, (ax, pitch_type) in enumerate(zip(axes, unique_pitch_types)):
-        pitch_type_data = plot_data[plot_data['TaggedPitchType'] == pitch_type]
+  for i, (ax, pitch_type) in enumerate(zip(axes, unique_pitch_types)):
+    pitch_type_data = plot_data[plot_data['TaggedPitchType'] == pitch_type]
+    
+      if not pitch_type_data.empty and len(pitch_type_data) > 5:  # Ensure there are more than 5 data points
+        # Plot heatmap using kdeplot (kernel density estimation)
+        sns.kdeplot(
+            x=pitch_type_data['PlateLocSide'], 
+            y=pitch_type_data['PlateLocHeight'], 
+            fill=True, 
+            cmap='Spectral_r', 
+            levels=6, 
+            ax=ax,
+            bw_adjust=0.5  # Adjust bandwidth for smoothness
+        )
         
-        if not pitch_type_data.empty:
-            # Plot heatmap using kdeplot (kernel density estimation)
-            sns.kdeplot(
-                x=pitch_type_data['PlateLocSide'], 
-                y=pitch_type_data['PlateLocHeight'], 
-                fill=True, 
-                cmap='Spectral_r', 
-                levels=6, 
-                ax=ax,
-                bw_adjust=0.5  # Adjust bandwidth for smoothness
-            )
-            
-            # Plot individual pitch locations as dots
-            ax.scatter(
-                pitch_type_data['PlateLocSide'], 
-                pitch_type_data['PlateLocHeight'], 
-                color='black',  # Color for the dots
-                edgecolor='white',  # Add a white border to make dots stand out
-                s=300,  # Size of the dots
-                alpha=0.7  # Transparency to allow overlap
-            )
+        # Plot individual pitch locations as dots
+        ax.scatter(
+            pitch_type_data['PlateLocSide'], 
+            pitch_type_data['PlateLocHeight'], 
+            color='black',  # Color for the dots
+            edgecolor='white',  # Add a white border to make dots stand out
+            s=300,  # Size of the dots
+            alpha=0.7  # Transparency to allow overlap
+        )
+      else:
+        # If there's not enough data, write a message
+        ax.text(0.5, 0.5, 'Insufficient data', horizontalalignment='center', verticalalignment='center', fontsize=12, transform=ax.transAxes)
+
         
         # Add strike zone as a rectangle with black edgecolor
         strike_zone_width = 17 / 12  # 1.41667 feet
