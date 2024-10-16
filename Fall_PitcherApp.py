@@ -87,7 +87,12 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
         pitcher_data = pitcher_data[pitcher_data['Balls'] == balls]
     
     # Remove rows where PlateLocSide or PlateLocHeight is NaN, for plotting purposes only
-  
+    plot_data = pitcher_data.dropna(subset=['PlateLocSide', 'PlateLocHeight'])
+    
+    # Check if plot_data is empty after dropping NaN values
+    if plot_data.empty:
+        st.write("No data available to plot for the selected parameters.")
+        return
 
     # Get unique pitch types thrown by the selected pitcher
     unique_pitch_types = plot_data['TaggedPitchType'].unique()
