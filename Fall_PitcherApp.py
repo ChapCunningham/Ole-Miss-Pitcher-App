@@ -69,9 +69,6 @@ def filter_data(pitcher_name, batter_side, strikes, balls):
 
 
 # Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
-# Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
-# Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
-# Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
 def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
     # Filter data for the selected pitcher and batter side
     pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls)
@@ -103,8 +100,9 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
     # Loop over each unique pitch type and create heatmaps
     for i, (ax, pitch_type) in enumerate(zip(axes, unique_pitch_types)):
         pitch_type_data = plot_data[plot_data['TaggedPitchType'] == pitch_type]
-        
-        if not pitch_type_data.empty:
+
+        # Check if there is enough variability in PlateLocSide and PlateLocHeight to plot KDE
+        if len(pitch_type_data['PlateLocSide'].unique()) > 1 and len(pitch_type_data['PlateLocHeight'].unique()) > 1:
             # Plot heatmap using kdeplot (kernel density estimation)
             sns.kdeplot(
                 x=pitch_type_data['PlateLocSide'], 
@@ -117,6 +115,16 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
             )
             
             # Plot individual pitch locations as dots
+            ax.scatter(
+                pitch_type_data['PlateLocSide'], 
+                pitch_type_data['PlateLocHeight'], 
+                color='black',  # Color for the dots
+                edgecolor='white',  # Add a white border to make dots stand out
+                s=300,  # Size of the dots
+                alpha=0.7  # Transparency to allow overlap
+            )
+        else:
+            # If not enough variability, skip KDE plot and only plot scatter
             ax.scatter(
                 pitch_type_data['PlateLocSide'], 
                 pitch_type_data['PlateLocHeight'], 
@@ -172,6 +180,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
     
     # Show the updated figure
     st.pyplot(fig)
+
 
 
 
