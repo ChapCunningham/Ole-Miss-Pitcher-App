@@ -151,13 +151,6 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
 # Generate heatmaps based on selections
 plot_heatmaps(pitcher_name, batter_side, strikes, balls)
 
-# Function to calculate InZone% and Chase%
-def calculate_in_zone(df):
-    # Strike zone boundaries
-    in_zone = df[(df['PlateLocHeight'] >= 1.5) & (df['PlateLocHeight'] <= 3.3775) & 
-                 (df['PlateLocSide'] >= -0.708) & (df['PlateLocSide'] <= 0.708)]
-    return in_zone
-
 # Function to manually format the dataframe before displaying
 def format_dataframe(df):
     # Ensure columns are numeric and fill NaN with 'N/A'
@@ -208,60 +201,5 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls):
     st.subheader("Pitch Traits:")
     st.dataframe(formatted_data)
 
-# Function to generate the plate discipline table
-def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls):
-    # Filter data for the selected pitcher and batter side
-    pitcher_data = test_df[
-        (test_df['Pitcher'] == pitcher_name) &
-        (test_df['BatterSide'] == batter_side)
-    ]
-
-    # Apply filtering for strikes and balls if 'All' is not selected
-    if strikes != 'All':
-        pitcher_data = pitcher_data[pitcher_data['Strikes'] == strikes]
-    if balls != 'All':
-        pitcher_data = pitcher_data[pitcher_data['Balls'] == balls]
-
-    # Calculate total pitches
-    total_pitches = len(pitcher_data)
-
-    # Calculate InZone, Swing, Whiff, Chase, and InZoneWhiff percentages
-    def calculate_metrics(df):
-        in_zone_pitches = calculate_in_zone(df)
-        total_in_zone = len(in_zone_pitches)
-        
-        total_swings = df[df['PitchCall'].isin(['StrikeSwinging', 'FoulBallFieldable', 'FoulBallNotFieldable', 'InPlay'])].shape[0]
-        total_whiffs = df[df['PitchCall'] == 'StrikeSwinging'].shape[0]
-        total_chase = df[~df.index.isin(in_zone_pitches.index) & df['PitchCall'].isin(['StrikeSwinging', 'FoulBallFieldable', 'FoulBallNotFieldable', 'InPlay'])].shape[0]
-        
-        in_zone_whiffs = in_zone_pitches[in_zone_pitches['PitchCall'] == 'StrikeSwinging'].shape[0]
-        
-        metrics = {
-            'InZone%': (total_in_zone / len(df)) * 100 if len(df) > 0 else 'N/A',
-            'Swing%': (total_swings / len(df)) * 100 if len(df) > 0 else 'N/A',
-            'Whiff%': (total_whiffs / total_swings) * 100 if total_swings > 0 else 'N/A',
-            'Chase%': (total_chase / total_swings) * 100 if total_swings > 0 else 'N/A',
-            'InZoneWhiff%': (in_zone_whiffs / total_in_zone) * 100 if total_in_zone > 0 else 'N/A'
-        }
-        return metrics
-
-    # Group by 'TaggedPitchType' and calculate plate discipline metrics
-    plate_discipline_data = pitcher_data.groupby('TaggedPitchType').apply(calculate_metrics).apply(pd.Series).reset_index()
-    
-    # Calculate the Pitch% column
-    plate_discipline_data['Count'] = pitcher_data.groupby('TaggedPitchType')['TaggedPitchType'].count().values
-    plate_discipline_data['Pitch%'] = (plate_discipline_data['Count'] / total_pitches) * 100
-
-    # Sort by Count (most thrown to least thrown)
-    plate_discipline_data = plate_discipline_data.sort_values(by='Count', ascending=False)
-
-    # Format the data before displaying
-    formatted_data = format_dataframe(plate_discipline_data)
-
-    # Display the table in Streamlit
-    st.subheader("Plate Discipline:")
-    st.dataframe(formatted_data)
-
-# Generate and display the pitch traits and plate discipline tables
+# Generate and display the pitch traits table
 generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls)
-generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls)
