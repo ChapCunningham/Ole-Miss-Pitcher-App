@@ -20,9 +20,6 @@ for col in numeric_columns:
 # Streamlit app layout
 st.title("Ole Miss Pitcher Heat Maps (Fall 2024)")
 
-
-
-
 # Dropdown widget to select the pitcher
 pitcher_name = st.selectbox(
     "Select Pitcher:",
@@ -48,13 +45,14 @@ balls = st.selectbox(
 )
 
 # Function to filter data based on the dropdown selections
-# Function to filter data based on the dropdown selections
 def filter_data(pitcher_name, batter_side, strikes, balls):
     # Filter data for the selected pitcher
     pitcher_data = test_df[test_df['Pitcher'] == pitcher_name]
 
     # Apply filtering for batter side, including 'Both' option
-    if batter_side != 'Both':
+    if batter_side == 'Both':
+        pitcher_data = pitcher_data[pitcher_data['BatterSide'].isin(['Right', 'Left'])]
+    else:
         pitcher_data = pitcher_data[pitcher_data['BatterSide'] == batter_side]
     
     # Apply filtering for strikes if 'All' is not selected
@@ -67,10 +65,6 @@ def filter_data(pitcher_name, batter_side, strikes, balls):
     
     return pitcher_data
 
-
-# Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
-# Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
-# Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
 # Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
 def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
     # Filter data for the selected pitcher and batter side
@@ -173,10 +167,10 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
     # Show the updated figure
     st.pyplot(fig)
 
-
-
 # Generate heatmaps based on selections
 plot_heatmaps(pitcher_name, batter_side, strikes, balls)
+
+
 
 # Function to calculate InZone% and Chase%
 def calculate_in_zone(df):
