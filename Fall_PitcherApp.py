@@ -26,10 +26,10 @@ pitcher_name = st.selectbox(
     options=test_df['Pitcher'].unique()
 )
 
-# Dropdown widget to select the batter side (Right or Left)
+# Dropdown widget to select the batter side (Right, Left, or Both)
 batter_side = st.selectbox(
     "Select Batter Side:",
-    options=['Right', 'Left']
+    options=['Right', 'Left', 'Both']  # Added 'Both' option
 )
 
 # Dropdown widget for the number of strikes, with an "All" option
@@ -44,13 +44,14 @@ balls = st.selectbox(
     options=['All', 0, 1, 2, 3]
 )
 
-# Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
-def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
-    # Filter data for the selected pitcher and batter side
-    pitcher_data = test_df[
-        (test_df['Pitcher'] == pitcher_name) &
-        (test_df['BatterSide'] == batter_side)
-    ]
+# Function to filter data based on the dropdown selections
+def filter_data(pitcher_name, batter_side, strikes, balls):
+    # Filter data for the selected pitcher
+    pitcher_data = test_df[test_df['Pitcher'] == pitcher_name]
+    
+    # Apply filtering for batter side, including 'Both' option
+    if batter_side != 'Both':
+        pitcher_data = pitcher_data[pitcher_data['BatterSide'] == batter_side]
     
     # Apply filtering for strikes if 'All' is not selected
     if strikes != 'All':
@@ -59,6 +60,12 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
     # Apply filtering for balls if 'All' is not selected
     if balls != 'All':
         pitcher_data = pitcher_data[pitcher_data['Balls'] == balls]
+    
+    return pitcher_data
+
+# Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
+def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
+    pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls)
     
     # Get unique pitch types thrown by the selected pitcher
     unique_pitch_types = pitcher_data['TaggedPitchType'].unique()
@@ -171,17 +178,7 @@ def format_dataframe(df):
 
 # Function to generate the pitch traits table
 def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls):
-    # Filter data for the selected pitcher and batter side
-    pitcher_data = test_df[
-        (test_df['Pitcher'] == pitcher_name) &
-        (test_df['BatterSide'] == batter_side)
-    ]
-
-    # Apply filtering for strikes and balls if 'All' is not selected
-    if strikes != 'All':
-        pitcher_data = pitcher_data[pitcher_data['Strikes'] == strikes]
-    if balls != 'All':
-        pitcher_data = pitcher_data[pitcher_data['Balls'] == balls]
+    pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls)
 
     # Group by 'TaggedPitchType' and calculate mean values for each group
     grouped_data = pitcher_data.groupby('TaggedPitchType').agg(
@@ -210,17 +207,7 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls):
 
 # Function to generate the plate discipline table
 def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls):
-    # Filter data for the selected pitcher and batter side
-    pitcher_data = test_df[
-        (test_df['Pitcher'] == pitcher_name) &
-        (test_df['BatterSide'] == batter_side)
-    ]
-
-    # Apply filtering for strikes and balls if 'All' is not selected
-    if strikes != 'All':
-        pitcher_data = pitcher_data[pitcher_data['Strikes'] == strikes]
-    if balls != 'All':
-        pitcher_data = pitcher_data[pitcher_data['Balls'] == balls]
+    pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls)
 
     # Calculate total pitches
     total_pitches = len(pitcher_data)
@@ -254,6 +241,9 @@ def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls):
 
     # Sort by Count (most thrown to least thrown)
     plate_discipline_data = plate_discipline_data.sort_values(by='Count', ascending=False)
+
+    # Reorder columns
+    plate_discipline_data = plate_discipline_data[['TaggedPitchType', 'Count', 'Pitch%', 'InZone%', 'Swing%', 'Whiff%', 'Chase%', 'InZoneWhiff%']]
 
     # Format the data before displaying
     formatted_data = format_dataframe(plate_discipline_data)
