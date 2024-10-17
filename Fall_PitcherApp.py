@@ -294,3 +294,134 @@ def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls):
 # Generate and display the pitch traits and plate discipline tables
 generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls)
 generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls)
+
+file_path = 'AllTrackman_fall_2024_df AS OF 10_16 - AllTrackman_fall_2024_df.csv'  # Replace with the correct path in your Streamlit setup
+@st.cache_data
+def load_data(file_path):
+    return pd.read_csv(file_path)
+
+test_df = load_data(file_path)
+
+# Ensure numeric conversion for the columns where aggregation will be done
+numeric_columns = ['RelSpeed', 'SpinRate', 'Tilt', 'RelHeight', 'RelSide', 
+                   'Extension', 'InducedVertBreak', 'HorzBreak', 'VertApprAngle', 'ExitSpeed']
+
+# Coerce non-numeric values to NaN
+for col in numeric_columns:
+    test_df[col] = pd.to_numeric(test_df[col], errors='coerce')
+
+# Streamlit app layout
+st.title("Ole Miss Pitcher Heat Maps (Fall 2024)")
+
+# Dropdown widget to select the pitcher
+pitcher_name = st.selectbox(
+    "Select Pitcher:",
+    options=test_df['Pitcher'].unique()
+)
+
+# Dropdown widget to select the batter side (Right, Left, or Both)
+batter_side = st.selectbox(
+    "Select Batter Side:",
+    options=['Right', 'Left', 'Both']  # Added 'Both' option
+)
+
+# Dropdown widget for the number of strikes, with an "All" option
+strikes = st.selectbox(
+    "Select Strikes:",
+    options=['All', 0, 1, 2]
+)
+
+# Dropdown widget for the number of balls, with an "All" option
+balls = st.selectbox(
+    "Select Balls:",
+    options=['All', 0, 1, 2, 3]
+)
+
+# Function to filter data based on the dropdown selections
+def filter_data(pitcher_name, batter_side, strikes, balls):
+    # Filter data for the selected pitcher
+    pitcher_data = test_df[test_df['Pitcher'] == pitcher_name]
+
+    # Apply filtering for batter side, including 'Both' option
+    if batter_side == 'Both':
+        pitcher_data = pitcher_data[pitcher_data['BatterSide'].isin(['Right', 'Left'])]
+    else:
+        pitcher_data = pitcher_data[pitcher_data['BatterSide'] == batter_side]
+    
+    # Apply filtering for strikes if 'All' is not selected
+    if strikes != 'All':
+        pitcher_data = pitcher_data[pitcher_data['Strikes'] == strikes]
+    
+    # Apply filtering for balls if 'All' is not selected
+    if balls != 'All':
+        pitcher_data = pitcher_data[pitcher_data['Balls'] == balls]
+    
+    return pitcher_data
+
+# Function to calculate InZone% for each TaggedPitchType
+def calculate_in_zone(df):
+    return df[(df['PlateLocHeight'] >= 1.5) & (df['PlateLocHeight'] <= 3.3775) &
+              (df['PlateLocSide'] >= -0.708) & (df['PlateLocSide'] <= 0.708)]
+
+# Function to generate the Pitch Usage (By Count) table
+def generate_pitch_usage_table(pitcher_name):
+    pitcher_df = test_df[test_df['Pitcher'] == pitcher_name]
+
+    # Define the list of all possible counts in the desired order
+    counts_order = [(0, 0), (1, 0), (2, 0), (3, 0),
+                    (0, 1), (0, 2), (1, 1), (2, 1),
+                    (3, 1), (1, 2), (2, 2), (3, 2)]
+
+    # Group by 'TaggedPitchType', 'Balls', and 'Strikes', and count occurrences
+    grouped = pitcher_df.groupby(['TaggedPitchType', 'Balls', 'Strikes']).size().reset_index(name='Count')
+
+    # Pivot the table to have 'TaggedPitchType' as the first column, and each count as its own column
+    pivot_table = pd.DataFrame(index=grouped['TaggedPitchType'].unique())
+
+    # Add columns for each count
+    for count in counts_order:
+        balls, strikes = count
+        count_data = grouped[(grouped['Balls'] == balls) & (grouped['Strikes'] == strikes)]
+
+        total_pitches_for_count = count_data['Count'].sum()
+
+        if total_pitches_for_count > 0:
+            count_data['Pitch%'] = (count_data['Count'] / total_pitches_for_count) * 100
+        else:
+            count_data['Pitch%'] = 0
+
+        count_data['Pitch%'] = count_data['Pitch%'].round(2)
+
+        count_data = count_data[['TaggedPitchType', 'Pitch%']].set_index('TaggedPitchType')
+        pivot_table[f'({balls},{strikes}) Pitch%'] = count_data['Pitch%']
+
+    # Calculate 0-0 and 1-1 InZone%
+    def add_in_zone_percentage(count_df, balls, strikes):
+        count_in_zone_df = calculate_in_zone(count_df)
+        in_zone_grouped = count_in_zone_df.groupby('TaggedPitchType').size().reset_index(name='InZoneCount')
+        total_pitches = count_df.groupby('TaggedPitchType').size().reset_index(name='TotalCount')
+
+        in_zone_percentage = pd.merge(in_zone_grouped, total_pitches, on='TaggedPitchType', how='right')
+        in_zone_percentage['InZone%'] = (in_zone_percentage['InZoneCount'] / in_zone_percentage['TotalCount']) * 100
+        in_zone_percentage['InZone%'] = in_zone_percentage['InZone%'].round(2).fillna(0)
+
+        pivot_table[f'({balls},{strikes}) InZone%'] = in_zone_percentage.set_index('TaggedPitchType')['InZone%']
+
+    count_0_0_df = pitcher_df[(pitcher_df['Balls'] == 0) & (pitcher_df['Strikes'] == 0)]
+    add_in_zone_percentage(count_0_0_df, 0, 0)
+
+    count_1_1_df = pitcher_df[(pitcher_df['Balls'] == 1) & (pitcher_df['Strikes'] == 1)]
+    add_in_zone_percentage(count_1_1_df, 1, 1)
+
+    # Fill NaN values with 0 and add the percent sign for display purposes
+    pivot_table = pivot_table.fillna(0).applymap(lambda x: f'{x:.2f}%' if isinstance(x, (int, float)) else x)
+
+    # Reset index to make 'TaggedPitchType' a column
+    pivot_table.reset_index(inplace=True)
+
+    # Display the resulting table
+    st.subheader("Pitch Usage (By Count):")
+    st.dataframe(pivot_table)
+
+# Generate the pitch usage table
+generate_pitch_usage_table(pitcher_name)
