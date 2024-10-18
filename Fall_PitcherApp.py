@@ -192,7 +192,7 @@ plot_heatmaps(pitcher_name, batter_side, strikes, balls)
 def calculate_in_zone(df):
     # Strike zone boundaries
     in_zone = df[(df['PlateLocHeight'] >= 1.5) & (df['PlateLocHeight'] <= 3.3775) & 
-                 (df['PlateLocSide'] >= -0.708) & (df['PlateLocSide'] <= 0.708)]
+                 (df['PlateLocSide'] >= -0.83083) & (df['PlateLocSide'] <= 0.83083)]
     return in_zone
 
 # Function to manually format the dataframe before displaying
