@@ -137,7 +137,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
             )
         
             # Add strike zone as a rectangle with black edgecolor
-            strike_zone_width = 17 / 12  # 1.41667 feet
+            strike_zone_width = 1.66166  # feet chagned for widest raw strike (formerly 17/12)
             strike_zone_params = {
                 'x_start': -strike_zone_width / 2,
                 'y_start': 1.5,
