@@ -5,12 +5,14 @@ import seaborn as sns
 import pandas as pd
 import numpy as np
 import math
+from datetime import datetime
 
 # Load the real dataset
 file_path = 'Fall_Trackman_Master.csv'  # Replace with the correct path in your Streamlit setup
+
 @st.cache_data
 def load_data(file_path):
-    return pd.read_csv(file_path)
+    return pd.read_csv(file_path, parse_dates=['Date'])  # Parse 'Date' column as datetime
 
 test_df = load_data(file_path)
 
@@ -25,32 +27,61 @@ for col in numeric_columns:
 # Streamlit app layout
 st.title("Ole Miss Pitcher Heat Maps (Fall 2024)")
 
+# Sidebar for filters
+st.sidebar.header("Filters")
+
 # Dropdown widget to select the pitcher
-pitcher_name = st.selectbox(
+pitcher_name = st.sidebar.selectbox(
     "Select Pitcher:",
     options=test_df['Pitcher'].unique()
 )
 
 # Dropdown widget to select the batter side (Right, Left, or Both)
-batter_side = st.selectbox(
+batter_side = st.sidebar.selectbox(
     "Select Batter Side:",
     options=['Right', 'Left', 'Both']  # Added 'Both' option
 )
 
 # Dropdown widget for the number of strikes, with an "All" option
-strikes = st.selectbox(
+strikes = st.sidebar.selectbox(
     "Select Strikes:",
     options=['All', 0, 1, 2]
 )
 
 # Dropdown widget for the number of balls, with an "All" option
-balls = st.selectbox(
+balls = st.sidebar.selectbox(
     "Select Balls:",
     options=['All', 0, 1, 2, 3]
 )
 
-# Function to filter data based on the dropdown selections
-def filter_data(pitcher_name, batter_side, strikes, balls):
+# Date Filtering Section
+st.sidebar.header("Date Filtering")
+
+# Option to choose the type of date filter
+date_filter_option = st.sidebar.selectbox(
+    "Select Date Filter:",
+    options=["All", "Single Date", "Date Range"]
+)
+
+# Initialize date variables
+selected_date = None
+start_date = None
+end_date = None
+
+# Display appropriate date picker based on the selected option
+if date_filter_option == "Single Date":
+    selected_date = st.sidebar.date_input(
+        "Select a Date",
+        value=datetime.today()
+    )
+elif date_filter_option == "Date Range":
+    start_date, end_date = st.sidebar.date_input(
+        "Select Date Range",
+        value=[datetime.today(), datetime.today()]
+    )
+
+# Function to filter data based on the dropdown selections and date filters
+def filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     # Filter data for the selected pitcher
     pitcher_data = test_df[test_df['Pitcher'] == pitcher_name]
 
@@ -59,22 +90,36 @@ def filter_data(pitcher_name, batter_side, strikes, balls):
         pitcher_data = pitcher_data[pitcher_data['BatterSide'].isin(['Right', 'Left'])]
     else:
         pitcher_data = pitcher_data[pitcher_data['BatterSide'] == batter_side]
-    
+
     # Apply filtering for strikes if 'All' is not selected
     if strikes != 'All':
         pitcher_data = pitcher_data[pitcher_data['Strikes'] == strikes]
-    
+
     # Apply filtering for balls if 'All' is not selected
     if balls != 'All':
         pitcher_data = pitcher_data[pitcher_data['Balls'] == balls]
     
+    # Apply date filtering
+    if date_filter_option == "Single Date" and selected_date:
+        # Convert selected_date to datetime if necessary
+        selected_datetime = pd.to_datetime(selected_date)
+        pitcher_data = pitcher_data[pitcher_data['Date'].dt.date == selected_datetime.date()]
+    elif date_filter_option == "Date Range" and start_date and end_date:
+        # Convert start_date and end_date to datetime if necessary
+        start_datetime = pd.to_datetime(start_date)
+        end_datetime = pd.to_datetime(end_date)
+        pitcher_data = pitcher_data[
+            (pitcher_data['Date'] >= start_datetime) & 
+            (pitcher_data['Date'] <= end_datetime)
+        ]
+    
     return pitcher_data
 
-# Function to create heatmaps for the selected pitcher, batter side, strikes, and balls
-def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
+# Function to create heatmaps for the selected pitcher, batter side, strikes, balls, and date filters
+def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
-        # Filter data for the selected pitcher and batter side
-        pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls)
+        # Filter data with date parameters
+        pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date)
         
         if pitcher_data.empty:
             st.write("No data available for the selected parameters.")
@@ -101,7 +146,11 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
 
         # Create subplots with the appropriate number of rows and columns
         fig, axes = plt.subplots(n_rows, plots_per_row, figsize=(fig_width, fig_height))
-        axes = axes.flatten()  # Flatten axes array for easier access
+        
+        if n_pitch_types == 1:
+            axes = [axes]  # Ensure axes is iterable
+        else:
+            axes = axes.flatten()  # Flatten axes array for easier access
 
         # Loop over each unique pitch type and create heatmaps
         for i, (ax, pitch_type) in enumerate(zip(axes, unique_pitch_types)):
@@ -137,7 +186,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
             )
         
             # Add strike zone as a rectangle with black edgecolor
-            strike_zone_width = 1.66166  # feet chagned for widest raw strike (formerly 17/12)
+            strike_zone_width = 1.66166  # feet changed for widest raw strike (formerly 17/12)
             strike_zone_params = {
                 'x_start': -strike_zone_width / 2,
                 'y_start': 1.5,
@@ -171,7 +220,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
             ax.set_aspect('equal', adjustable='box')
         
         # Remove any unused subplots
-        for j in range(i + 1, len(axes)):
+        for j in range(len(unique_pitch_types), len(axes)):
             fig.delaxes(axes[j])
 
         # Add a main title for all the heatmaps
@@ -185,14 +234,15 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls):
     except Exception as e:
         st.write(f"Error generating heatmaps: {e}")
 
-# Generate heatmaps based on selections
-plot_heatmaps(pitcher_name, batter_side, strikes, balls)
-
 # Function to calculate InZone% and Chase%
 def calculate_in_zone(df):
     # Strike zone boundaries
-    in_zone = df[(df['PlateLocHeight'] >= 1.5) & (df['PlateLocHeight'] <= 3.3775) & 
-                 (df['PlateLocSide'] >= -0.83083) & (df['PlateLocSide'] <= 0.83083)]
+    in_zone = df[
+        (df['PlateLocHeight'] >= 1.5) & 
+        (df['PlateLocHeight'] <= 3.3775) & 
+        (df['PlateLocSide'] >= -0.83083) & 
+        (df['PlateLocSide'] <= 0.83083)
+    ]
     return in_zone
 
 # Function to manually format the dataframe before displaying
@@ -210,9 +260,13 @@ def format_dataframe(df):
     return df
 
 # Function to generate the pitch traits table
-def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls):
+def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
-        pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls)
+        pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date)
+
+        if pitcher_data.empty:
+            st.write("No data available for the selected parameters.")
+            return
 
         # Group by 'TaggedPitchType' and calculate mean values for each group
         grouped_data = pitcher_data.groupby('TaggedPitchType').agg(
@@ -242,9 +296,13 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls):
         st.write(f"Error generating pitch traits table: {e}")
 
 # Function to generate the plate discipline table
-def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls):
+def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
-        pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls)
+        pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date)
+
+        if pitcher_data.empty:
+            st.write("No data available for the selected parameters.")
+            return
 
         # Calculate total pitches
         total_pitches = len(pitcher_data)
@@ -254,9 +312,14 @@ def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls):
             in_zone_pitches = calculate_in_zone(df)
             total_in_zone = len(in_zone_pitches)
             
-            total_swings = df[df['PitchCall'].isin(['StrikeSwinging', 'FoulBallFieldable', 'FoulBallNotFieldable', 'InPlay'])].shape[0]
+            # Define what constitutes a swing
+            swing_conditions = ['StrikeSwinging', 'FoulBallFieldable', 'FoulBallNotFieldable', 'InPlay']
+            total_swings = df[df['PitchCall'].isin(swing_conditions)].shape[0]
             total_whiffs = df[df['PitchCall'] == 'StrikeSwinging'].shape[0]
-            total_chase = df[~df.index.isin(in_zone_pitches.index) & df['PitchCall'].isin(['StrikeSwinging', 'FoulBallFieldable', 'FoulBallNotFieldable', 'InPlay'])].shape[0]
+            total_chase = df[
+                (~df.index.isin(in_zone_pitches.index)) & 
+                df['PitchCall'].isin(swing_conditions)
+            ].shape[0]
             
             in_zone_whiffs = in_zone_pitches[in_zone_pitches['PitchCall'] == 'StrikeSwinging'].shape[0]
             
@@ -291,6 +354,37 @@ def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls):
     except Exception as e:
         st.write(f"Error generating plate discipline table: {e}")
 
+# Generate heatmaps based on selections
+plot_heatmaps(
+    pitcher_name, 
+    batter_side, 
+    strikes, 
+    balls, 
+    date_filter_option, 
+    selected_date, 
+    start_date, 
+    end_date
+)
+
 # Generate and display the pitch traits and plate discipline tables
-generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls)
-generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls)
+generate_pitch_traits_table(
+    pitcher_name, 
+    batter_side, 
+    strikes, 
+    balls, 
+    date_filter_option, 
+    selected_date, 
+    start_date, 
+    end_date
+)
+
+generate_plate_discipline_table(
+    pitcher_name, 
+    batter_side, 
+    strikes, 
+    balls, 
+    date_filter_option, 
+    selected_date, 
+    start_date, 
+    end_date
+)
