@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # Load the dataset
-file_path = 'Fall_Trackman_Master.csv'  # Replace with the correct path in your Streamlit setup
+file_path = 'Fall_Trackman_Master.csv'  # Replace with the correct path in your Streamlit setu
 @st.cache_data
 def load_data(file_path):
     return pd.read_csv(file_path)
