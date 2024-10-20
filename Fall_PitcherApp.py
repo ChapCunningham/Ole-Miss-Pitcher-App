@@ -15,6 +15,7 @@ def load_data(file_path):
     return pd.read_csv(file_path, parse_dates=['Date'])  # Parse 'Date' column as datetime
 
 test_df = load_data(file_path)
+test_df = test_df[test_df['PitcherTeam'] == 'OLE_REB']
 
 # Ensure numeric conversion for the columns where aggregation will be done
 numeric_columns = ['RelSpeed', 'SpinRate', 'Tilt', 'RelHeight', 'RelSide', 
