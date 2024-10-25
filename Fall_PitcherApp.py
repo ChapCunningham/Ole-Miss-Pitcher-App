@@ -40,7 +40,7 @@ pitcher_name = st.sidebar.selectbox(
 # Dropdown widget to select the batter side (Right, Left, or Both)
 batter_side = st.sidebar.selectbox(
     "Select Batter Side:",
-    options=['Right', 'Left', 'Both']  # Added 'Both' option
+    options=['Both', 'Right', 'Left']  # Added 'Both' option
 )
 
 # Dropdown widget for the number of strikes, with an "All" option
