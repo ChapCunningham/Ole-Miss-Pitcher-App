@@ -297,6 +297,7 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         st.write(f"Error generating pitch traits table: {e}")
 
 # Function to generate the plate discipline table
+# Function to generate the plate discipline table with Strike% column
 def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
         pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date)
@@ -308,7 +309,7 @@ def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls, d
         # Calculate total pitches
         total_pitches = len(pitcher_data)
 
-        # Calculate InZone, Swing, Whiff, Chase, and InZoneWhiff percentages
+        # Calculate InZone, Swing, Whiff, Chase, InZoneWhiff, and Strike percentages
         def calculate_metrics(df):
             in_zone_pitches = calculate_in_zone(df)
             total_in_zone = len(in_zone_pitches)
@@ -324,12 +325,17 @@ def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls, d
             
             in_zone_whiffs = in_zone_pitches[in_zone_pitches['PitchCall'] == 'StrikeSwinging'].shape[0]
             
+            # Define what constitutes a strike
+            strike_conditions = ['StrikeCalled', 'FoulBallFieldable', 'FoulBallNotFieldable', 'StrikeSwinging', 'InPlay']
+            total_strikes = df[df['PitchCall'].isin(strike_conditions)].shape[0]
+            
             metrics = {
                 'InZone%': (total_in_zone / len(df)) * 100 if len(df) > 0 else 'N/A',
                 'Swing%': (total_swings / len(df)) * 100 if len(df) > 0 else 'N/A',
                 'Whiff%': (total_whiffs / total_swings) * 100 if total_swings > 0 else 'N/A',
                 'Chase%': (total_chase / total_swings) * 100 if total_swings > 0 else 'N/A',
-                'InZoneWhiff%': (in_zone_whiffs / total_in_zone) * 100 if total_in_zone > 0 else 'N/A'
+                'InZoneWhiff%': (in_zone_whiffs / total_in_zone) * 100 if total_in_zone > 0 else 'N/A',
+                'Strike%': (total_strikes / len(df)) * 100 if len(df) > 0 else 'N/A'
             }
             return metrics
 
@@ -343,8 +349,8 @@ def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls, d
         # Sort by Count (most thrown to least thrown)
         plate_discipline_data = plate_discipline_data.sort_values(by='Count', ascending=False)
 
-        # Reorder columns
-        plate_discipline_data = plate_discipline_data[['TaggedPitchType', 'Count', 'Pitch%', 'InZone%', 'Swing%', 'Whiff%', 'Chase%', 'InZoneWhiff%']]
+        # Reorder columns to include Strike% after Pitch%
+        plate_discipline_data = plate_discipline_data[['TaggedPitchType', 'Count', 'Pitch%', 'Strike%', 'InZone%', 'Swing%', 'Whiff%', 'Chase%', 'InZoneWhiff%']]
 
         # Format the data before displaying
         formatted_data = format_dataframe(plate_discipline_data)
@@ -354,6 +360,7 @@ def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls, d
         st.dataframe(formatted_data)
     except Exception as e:
         st.write(f"Error generating plate discipline table: {e}")
+
 
 # Define a color dictionary for each pitch type
 color_dict = {
