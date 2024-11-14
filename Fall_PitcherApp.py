@@ -362,7 +362,7 @@ color_dict = {
     'Slider': 'green',
     'Curveball': 'red',
     'Cutter': 'orange',
-    'Changeup': 'purple',
+    'ChangeUp': 'purple',
     'Splitter': 'teal',
     'Unknown': 'black',
     'Other': 'black'
