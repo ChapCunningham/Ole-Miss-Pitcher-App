@@ -368,8 +368,7 @@ color_dict = {
     'Other': 'black'
 }
 
-import plotly.express as px
-
+# Updated plot_pitch_movement function with color dictionary
 def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
         # Filter data based on the selected parameters
@@ -386,62 +385,61 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
             st.write("No pitch movement data available for plotting.")
             return
 
-        # Define a color dictionary for each pitch type
-        color_dict = {
-            'Fastball': 'blue',
-            'Sinker': 'gold',
-            'Slider': 'green',
-            'Curveball': 'red',
-            'Cutter': 'orange',
-            'ChangeUp': 'purple',
-            'Splitter': 'teal',
-            'Unknown': 'black',
-            'Other': 'black'
-        }
+        # Set up the figure for pitch movement
+        plt.figure(figsize=(8, 8))
+        ax = plt.gca()
 
-        # Map colors to each pitch type in the DataFrame
-        movement_data['Color'] = movement_data['TaggedPitchType'].map(color_dict).fillna('black')
+        # Set axis limits and labels
+        ax.set_xlim(-25, 25)
+        ax.set_ylim(-25, 25)
+        ax.set_xlabel("Horizontal Break (inches)", fontsize=12)
+        ax.set_ylabel("Induced Vertical Break (inches)", fontsize=12)
+        
+        # Add grid lines every 5 units
+        ax.xaxis.set_major_locator(plt.MultipleLocator(5))
+        ax.yaxis.set_major_locator(plt.MultipleLocator(5))
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
 
-        # Create an interactive Plotly scatter plot
-        fig = px.scatter(
-            movement_data,
-            x='HorzBreak',
-            y='InducedVertBreak',
-            color='TaggedPitchType',
-            color_discrete_map=color_dict,
-            hover_data={
-                'RelSpeed': True,
-                'InducedVertBreak': True,
-                'HorzBreak': True,
-                'PitchCall': True,
-                'TaggedPitchType': False,  # Hide pitch type as it's used for color
-            },
-            labels={
-                'HorzBreak': 'Horizontal Break (inches)',
-                'InducedVertBreak': 'Induced Vertical Break (inches)',
-                'RelSpeed': 'Release Speed (mph)',
-                'PitchCall': 'Pitch Call'
-            },
-            title="Pitch Movement Graph"
-        )
+        # Add bold black lines through the origin
+        plt.axhline(0, color='black', linewidth=2, zorder=1)  # Horizontal line through the origin
+        plt.axvline(0, color='black', linewidth=2, zorder=1)  # Vertical line through the origin
 
-        # Set axis limits
-        fig.update_xaxes(range=[-25, 25])
-        fig.update_yaxes(range=[-25, 25])
+        # Plot each pitch, colored by pitch type, with a higher z-order
+        unique_pitch_types = movement_data['TaggedPitchType'].unique()
+        for pitch_type in unique_pitch_types:
+            pitch_type_data = movement_data[movement_data['TaggedPitchType'] == pitch_type]
+            
+            # Set color based on pitch type, default to black for unknown types
+            color = color_dict.get(pitch_type, 'black')
+            
+            # Plot individual pitches
+            plt.scatter(
+                pitch_type_data['HorzBreak'], 
+                pitch_type_data['InducedVertBreak'], 
+                label=pitch_type, 
+                color=color,
+                s=50, 
+                alpha=0.7,
+                zorder=2  # Higher z-order to plot above the lines
+            )
 
-        # Add grid lines
-        fig.update_layout(
-            xaxis=dict(tickmode='linear', tick0=-25, dtick=5),
-            yaxis=dict(tickmode='linear', tick0=-25, dtick=5),
-            width=800, height=800
-        )
+            # Calculate the mean and standard deviation for clustering
+            mean_horz = pitch_type_data['HorzBreak'].mean()
+            mean_vert = pitch_type_data['InducedVertBreak'].mean()
+            std_dev = np.sqrt(pitch_type_data['HorzBreak'].std()**2 + pitch_type_data['InducedVertBreak'].std()**2)
 
-        # Show plot in Streamlit
-        st.plotly_chart(fig)
+            # Draw a circle to represent the cluster area
+            circle = plt.Circle((mean_horz, mean_vert), std_dev, color=color, alpha=0.3, zorder=1)
+            ax.add_patch(circle)
 
+        # Add a legend for pitch types
+        plt.legend(title="Pitch Type", bbox_to_anchor=(1.05, 1), loc='upper left')
+
+        # Display the plot in Streamlit
+        st.subheader("Pitch Movement Graph:")
+        st.pyplot(plt)
     except Exception as e:
         st.write(f"Error generating pitch movement graph: {e}")
-
 
 
 
