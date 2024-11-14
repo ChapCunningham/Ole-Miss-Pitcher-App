@@ -356,7 +356,6 @@ def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls, d
         st.write(f"Error generating plate discipline table: {e}")
 
 # Function to create a pitch movement graph
-# Function to create a pitch movement graph
 def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
         # Filter data based on the selected parameters
@@ -377,18 +376,6 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
         plt.figure(figsize=(8, 8))
         ax = plt.gca()
 
-        # Plot each pitch, colored by pitch type
-        unique_pitch_types = movement_data['TaggedPitchType'].unique()
-        for pitch_type in unique_pitch_types:
-            pitch_type_data = movement_data[movement_data['TaggedPitchType'] == pitch_type]
-            plt.scatter(
-                pitch_type_data['HorzBreak'], 
-                pitch_type_data['InducedVertBreak'], 
-                label=pitch_type, 
-                s=50, 
-                alpha=0.7
-            )
-
         # Set axis limits and labels
         ax.set_xlim(-25, 25)
         ax.set_ylim(-25, 25)
@@ -401,8 +388,21 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
         plt.grid(True, which='both', linestyle='--', linewidth=0.5)
 
         # Add bold black lines through the origin
-        plt.axhline(0, color='black', linewidth=2)  # Horizontal line through the origin
-        plt.axvline(0, color='black', linewidth=2)  # Vertical line through the origin
+        plt.axhline(0, color='black', linewidth=2, zorder=1)  # Horizontal line through the origin
+        plt.axvline(0, color='black', linewidth=2, zorder=1)  # Vertical line through the origin
+
+        # Plot each pitch, colored by pitch type, with a higher z-order
+        unique_pitch_types = movement_data['TaggedPitchType'].unique()
+        for pitch_type in unique_pitch_types:
+            pitch_type_data = movement_data[movement_data['TaggedPitchType'] == pitch_type]
+            plt.scatter(
+                pitch_type_data['HorzBreak'], 
+                pitch_type_data['InducedVertBreak'], 
+                label=pitch_type, 
+                s=50, 
+                alpha=0.7,
+                zorder=2  # Higher z-order to plot above the lines
+            )
 
         # Add a legend for pitch types
         plt.legend(title="Pitch Type", bbox_to_anchor=(1.05, 1), loc='upper left')
@@ -412,6 +412,7 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
         st.pyplot(plt)
     except Exception as e:
         st.write(f"Error generating pitch movement graph: {e}")
+
 
 
 # Generate heatmaps based on selections
