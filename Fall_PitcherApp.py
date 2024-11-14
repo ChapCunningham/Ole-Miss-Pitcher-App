@@ -356,6 +356,7 @@ def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls, d
         st.write(f"Error generating plate discipline table: {e}")
 
 # Function to create a pitch movement graph
+# Function to create a pitch movement graph
 def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
         # Filter data based on the selected parameters
@@ -399,6 +400,10 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
         ax.yaxis.set_major_locator(plt.MultipleLocator(5))
         plt.grid(True, which='both', linestyle='--', linewidth=0.5)
 
+        # Add bold black lines through the origin
+        plt.axhline(0, color='black', linewidth=2)  # Horizontal line through the origin
+        plt.axvline(0, color='black', linewidth=2)  # Vertical line through the origin
+
         # Add a legend for pitch types
         plt.legend(title="Pitch Type", bbox_to_anchor=(1.05, 1), loc='upper left')
 
@@ -407,6 +412,7 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
         st.pyplot(plt)
     except Exception as e:
         st.write(f"Error generating pitch movement graph: {e}")
+
 
 # Generate heatmaps based on selections
 plot_heatmaps(
