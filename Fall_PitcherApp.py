@@ -458,6 +458,17 @@ plot_heatmaps(
 )
 
 # Generate and display the pitch traits and plate discipline tables
+generate_plate_discipline_table(
+    pitcher_name, 
+    batter_side, 
+    strikes, 
+    balls, 
+    date_filter_option, 
+    selected_date, 
+    start_date, 
+    end_date
+)
+
 generate_pitch_traits_table(
     pitcher_name, 
     batter_side, 
@@ -469,16 +480,6 @@ generate_pitch_traits_table(
     end_date
 )
 
-generate_plate_discipline_table(
-    pitcher_name, 
-    batter_side, 
-    strikes, 
-    balls, 
-    date_filter_option, 
-    selected_date, 
-    start_date, 
-    end_date
-)
 
 plot_pitch_movement(
     pitcher_name, 
