@@ -356,6 +356,7 @@ def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls, d
         st.write(f"Error generating plate discipline table: {e}")
 
 # Function to create a pitch movement graph
+# Function to create a pitch movement graph with circles around general areas of pitch clusters
 def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
         # Filter data based on the selected parameters
@@ -395,6 +396,8 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
         unique_pitch_types = movement_data['TaggedPitchType'].unique()
         for pitch_type in unique_pitch_types:
             pitch_type_data = movement_data[movement_data['TaggedPitchType'] == pitch_type]
+            
+            # Plot individual pitches
             plt.scatter(
                 pitch_type_data['HorzBreak'], 
                 pitch_type_data['InducedVertBreak'], 
@@ -404,6 +407,15 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
                 zorder=2  # Higher z-order to plot above the lines
             )
 
+            # Calculate the mean and standard deviation for clustering
+            mean_horz = pitch_type_data['HorzBreak'].mean()
+            mean_vert = pitch_type_data['InducedVertBreak'].mean()
+            std_dev = np.sqrt(pitch_type_data['HorzBreak'].std()**2 + pitch_type_data['InducedVertBreak'].std()**2)
+
+            # Draw a circle to represent the cluster area
+            circle = plt.Circle((mean_horz, mean_vert), std_dev, color=sns.color_palette("hsv", len(unique_pitch_types))[list(unique_pitch_types).index(pitch_type)], alpha=0.3, zorder=1)
+            ax.add_patch(circle)
+
         # Add a legend for pitch types
         plt.legend(title="Pitch Type", bbox_to_anchor=(1.05, 1), loc='upper left')
 
@@ -412,6 +424,7 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
         st.pyplot(plt)
     except Exception as e:
         st.write(f"Error generating pitch movement graph: {e}")
+
 
 
 
