@@ -26,7 +26,7 @@ for col in numeric_columns:
     test_df[col] = pd.to_numeric(test_df[col], errors='coerce')
 
 # Streamlit app layout
-st.title("Ole Miss Pitcher Heat Maps (Fall 2024)")
+st.title("OMBSB Fall Pitcher Reports")
 
 # Sidebar for filters
 st.sidebar.header("Filters")
