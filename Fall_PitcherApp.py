@@ -418,7 +418,7 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
 
         # Drop redundant 'PitchType' column and fill missing CLASS+ scores with "N/A"
         grouped_data = grouped_data.drop(columns=["PitchType"], errors="ignore")
-        grouped_data["CLASS+"] = grouped_data["CLASS+"].fillna("N/A")
+        grouped_data["CLASS+"] = pd.to_numeric(grouped_data["CLASS+"], errors="coerce").fillna("N/A")
 
         # Sort by 'Count' (most frequently thrown pitches first)
         grouped_data = grouped_data.sort_values(by='Count', ascending=False)
@@ -432,6 +432,15 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             for column in ['Velo', 'iVB', 'HB', 'Spin', 'RelH', 'RelS', 'Ext', 'VAA']
         }
 
+        # Calculate the weighted average for CLASS+
+        class_plus_weighted_avg = (
+            np.average(
+                grouped_data.loc[grouped_data["CLASS+"] != "N/A", "CLASS+"],
+                weights=grouped_data.loc[grouped_data["CLASS+"] != "N/A", "Count"]
+            )
+            if grouped_data["CLASS+"].dtype.kind in 'fc' and total_count > 0 else "N/A"
+        )
+
         all_row = {
             'Pitch': 'All',
             'Count': total_count,
@@ -443,7 +452,7 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             'RelS': round(weighted_averages['RelS'], 2) if pd.notna(weighted_averages['RelS']) else 'N/A',
             'Ext': round(weighted_averages['Ext'], 2) if pd.notna(weighted_averages['Ext']) else 'N/A',
             'VAA': round(weighted_averages['VAA'], 2) if pd.notna(weighted_averages['VAA']) else 'N/A',
-            'CLASS+': 'N/A'  # CLASS+ is not applicable for the "All" row
+            'CLASS+': round(class_plus_weighted_avg, 1) if pd.notna(class_plus_weighted_avg) else 'N/A'
         }
 
         # Append "All" row to the DataFrame
@@ -460,6 +469,7 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         st.error(f"Key error encountered: {ke}. Please check the input data and column names.")
     except Exception as e:
         st.error(f"An error occurred while generating the pitch traits table: {e}")
+
 
 
 
