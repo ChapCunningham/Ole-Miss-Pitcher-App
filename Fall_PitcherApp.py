@@ -499,8 +499,9 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
     except Exception as e:
         st.write(f"Error generating pitch movement graph: {e}")
 
-# Function to generate the Batted Ball table
-# Function to generate the Batted Ball table
+
+
+
 # Function to generate the Batted Ball table
 def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
@@ -584,6 +585,7 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
         st.dataframe(formatted_data)
     except Exception as e:
         st.write(f"Error generating batted ball table: {e}")
+
 
 
 
