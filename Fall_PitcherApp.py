@@ -501,6 +501,7 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
 
 # Function to generate the Batted Ball table
 # Function to generate the Batted Ball table
+# Function to generate the Batted Ball table
 def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
         # Filter data based on the provided filters
@@ -561,6 +562,20 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
         }
         batted_ball_summary = batted_ball_summary.rename(columns=rename_columns)
 
+        # Calculate "All" row for totals and averages
+        all_row = {
+            'Pitch': 'All',
+            'BIP': batted_ball_summary['BIP'].sum(),  # Total BIP
+            'EV': batted_data['ExitSpeed'].mean(),  # Overall average EV
+            'GB%': (batted_data['BattedType'] == 'GroundBall').sum() / batted_ball_summary['BIP'].sum() * 100,  # Overall GB%
+            'FB%': (batted_data['BattedType'] == 'FlyBall').sum() / batted_ball_summary['BIP'].sum() * 100,  # Overall FB%
+            'Hard%': (batted_data['ExitSpeed'] >= 95).sum() / batted_ball_summary['BIP'].sum() * 100,  # Overall Hard%
+            'Soft%': (batted_data['ExitSpeed'] < 95).sum() / batted_ball_summary['BIP'].sum() * 100  # Overall Soft%
+        }
+
+        # Append "All" row to the summary DataFrame
+        batted_ball_summary = batted_ball_summary.append(all_row, ignore_index=True)
+
         # Format the data for display
         formatted_data = format_dataframe(batted_ball_summary)
 
@@ -569,6 +584,7 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
         st.dataframe(formatted_data)
     except Exception as e:
         st.write(f"Error generating batted ball table: {e}")
+
 
 
 
