@@ -268,8 +268,23 @@ def format_dataframe(df):
 
 
 
+# Load CLASS+ CSV into a DataFrame
+class_plus_file_path = "path_to_class_plus.csv"  # Replace with the actual path
+class_plus_df = pd.read_csv(class_plus_file_path)
 
-# Function to generate the pitch traits table
+# Rename Pitch Types in CLASS+ DataFrame to match Streamlit app
+pitch_type_mapping = {
+    "FF": "Fastball",
+    "SI": "Sinker",
+    "FC": "Cutter",
+    "SL": "Slider",
+    "CU": "Curveball",
+    "FS": "Splitter",
+    "CH": "ChangeUp"
+}
+class_plus_df["PitchType"] = class_plus_df["PitchType"].map(pitch_type_mapping)
+
+# Function to generate the pitch traits table with CLASS+ scores
 def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
         pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date)
@@ -305,12 +320,22 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         }
         grouped_data = grouped_data.rename(columns=rename_columns)
 
+        # Merge with CLASS+ DataFrame
+        class_plus_filtered = class_plus_df[class_plus_df["playerFullName"] == pitcher_name]
+        grouped_data = pd.merge(
+            grouped_data,
+            class_plus_filtered[["PitchType", "CLASS+"]],  # Select only relevant columns
+            how="left",
+            left_on="Pitch",
+            right_on="PitchType"
+        )
+
+        # Drop the extra 'PitchType' column from the merge and handle missing CLASS+ scores
+        grouped_data = grouped_data.drop(columns=["PitchType"], errors="ignore")
+        grouped_data["CLASS+"] = grouped_data["CLASS+"].fillna("N/A")
+
         # Sort by Count (most thrown to least thrown)
         grouped_data = grouped_data.sort_values(by='Count', ascending=False)
-
-        # Remove Tilt and ExitSpeed columns
-        columns_to_remove = ['Tilt', 'ExitSpeed']  # Not present in the grouped aggregation, but for consistency
-        grouped_data = grouped_data.drop(columns=[col for col in columns_to_remove if col in grouped_data], errors='ignore')
 
         # Format the data before displaying
         formatted_data = format_dataframe(grouped_data)
@@ -320,6 +345,7 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         st.dataframe(formatted_data)
     except Exception as e:
         st.write(f"Error generating pitch traits table: {e}")
+
 
 # Function to generate the plate discipline table
 # Function to generate the plate discipline table with Strike% column
