@@ -201,8 +201,8 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
                 pitch_type_data['PlateLocHeight'],
                 color='black',
                 edgecolor='white',
-                s=100,  # Adjusted size for better visibility
-                alpha=1,  # Full opacity for clarity
+                s=100,  # Increased size for visibility
+                alpha=1,  # Full opacity
                 zorder=3  # Ensures it plots on top of the heatmap
             )
             
@@ -222,7 +222,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
             ax.set_ylim(1, 4)
             ax.set_xticks([])
             ax.set_yticks([])
-            ax.set_title(f"{pitch_type} ({pitcher_name})", fontsize=20, fontweight='bold')  # Increased font size and added bold
+            ax.set_title(f"{pitch_type} ({pitcher_name})", fontsize=24, fontweight='bold')  # Increased font size and bold
             ax.set_aspect('equal', adjustable='box')
         
         # Remove unused axes
