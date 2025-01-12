@@ -274,18 +274,33 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             Count=('TaggedPitchType', 'size'),
             RelSpeed=('RelSpeed', 'mean'),
             InducedVertBreak=('InducedVertBreak', 'mean'),
-            HorizontalBreak=('HorzBreak', 'mean'), 
+            HorizontalBreak=('HorzBreak', 'mean'),
             SpinRate=('SpinRate', 'mean'),
             RelHeight=('RelHeight', 'mean'),
             RelSide=('RelSide', 'mean'),
             Extension=('Extension', 'mean'),
-            VertApprAngle=('VertApprAngle', 'mean'),
-            Tilt=('Tilt', 'mean'),
-            ExitSpeed=('ExitSpeed', lambda x: x.mean() if x.notna().sum() > 0 else 'N/A')
+            VertApprAngle=('VertApprAngle', 'mean')
         ).reset_index()
+
+        # Rename the columns
+        rename_columns = {
+            'TaggedPitchType': 'Pitch',
+            'InducedVertBreak': 'iVB',
+            'HorizontalBreak': 'HB',
+            'SpinRate': 'Spin',
+            'RelHeight': 'RelH',
+            'RelSide': 'RelS',
+            'Extension': 'Ext',
+            'VertApprAngle': 'VAA'
+        }
+        grouped_data = grouped_data.rename(columns=rename_columns)
 
         # Sort by Count (most thrown to least thrown)
         grouped_data = grouped_data.sort_values(by='Count', ascending=False)
+
+        # Remove Tilt and ExitSpeed columns
+        columns_to_remove = ['Tilt', 'ExitSpeed']  # Not present in the grouped aggregation, but for consistency
+        grouped_data = grouped_data.drop(columns=[col for col in columns_to_remove if col in grouped_data], errors='ignore')
 
         # Format the data before displaying
         formatted_data = format_dataframe(grouped_data)
