@@ -550,8 +550,19 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
             st.write("No data available for the selected parameters.")
             return
 
-        # Get unique pitch types from the filtered data
-        unique_pitch_types = pitcher_data['TaggedPitchType'].unique()
+        # Add the 'BattedType' column to categorize batted balls
+        def categorize_batted_type(angle):
+            if angle < 10:
+                return "GroundBall"
+            elif 10 <= angle < 25:
+                return "LineDrive"
+            elif 25 <= angle < 50:
+                return "FlyBall"
+            else:
+                return "PopUp"
+
+        # Create 'BattedType' column for the entire dataset
+        pitcher_data['BattedType'] = pitcher_data['Angle'].apply(categorize_batted_type)
 
         # Filter rows where PitchCall is 'InPlay' to calculate BIP
         batted_data = pitcher_data[pitcher_data['PitchCall'] == 'InPlay']
@@ -567,6 +578,7 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
         ).reset_index()
 
         # Ensure all pitch types are included
+        unique_pitch_types = pitcher_data['TaggedPitchType'].unique()
         full_summary = pd.DataFrame({'TaggedPitchType': unique_pitch_types})
         batted_ball_summary = pd.merge(full_summary, batted_ball_summary, on='TaggedPitchType', how='left')
 
@@ -641,6 +653,7 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
         st.dataframe(formatted_data)
     except Exception as e:
         st.write(f"Error generating batted ball table: {e}")
+
 
 
 
