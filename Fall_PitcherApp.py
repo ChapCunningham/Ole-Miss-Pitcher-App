@@ -286,6 +286,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
 
 
 
+
 # Function to calculate InZone% and Chase%
 def calculate_in_zone(df):
     # Strike zone boundaries
