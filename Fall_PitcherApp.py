@@ -184,16 +184,6 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
         for i, (ax, pitch_type) in enumerate(zip(axes, unique_pitch_types)):
             pitch_type_data = plot_data[plot_data['TaggedPitchType'] == pitch_type]
             
-            # Individual pitches
-            ax.scatter(
-                pitch_type_data['PlateLocSide'],
-                pitch_type_data['PlateLocHeight'],
-                color='black',
-                edgecolor='white',
-                s=300,  # Adjust dot size
-                alpha=0.7
-            )
-            
             if heatmap_type == "Frequency":
                 sns.kdeplot(
                     x=pitch_type_data['PlateLocSide'],
@@ -204,19 +194,41 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
                     ax=ax,
                     bw_adjust=0.5 if len(pitch_type_data) > 50 else 1
                 )
+            
             elif heatmap_type == "Whiff":
                 whiff_data = pitch_type_data[pitch_type_data['PitchCall'] == 'StrikeSwinging']
-                sns.kdeplot(
-                    x=whiff_data['PlateLocSide'],
-                    y=whiff_data['PlateLocHeight'],
-                    fill=True,
-                    cmap='coolwarm',
-                    levels=6,
-                    ax=ax,
-                    bw_adjust=0.5 if len(whiff_data) > 50 else 1
-                )
+                
+                if len(whiff_data) < 5:
+                    # Only plot individual points for fewer than 5 whiffs
+                    ax.scatter(
+                        whiff_data['PlateLocSide'],
+                        whiff_data['PlateLocHeight'],
+                        color='blue',
+                        edgecolor='white',
+                        s=300,
+                        alpha=0.7
+                    )
+                else:
+                    # Plot heatmap and individual points for 5+ whiffs
+                    sns.kdeplot(
+                        x=whiff_data['PlateLocSide'],
+                        y=whiff_data['PlateLocHeight'],
+                        fill=True,
+                        cmap='coolwarm',
+                        levels=6,
+                        ax=ax,
+                        bw_adjust=0.5 if len(whiff_data) > 50 else 1
+                    )
+                    ax.scatter(
+                        whiff_data['PlateLocSide'],
+                        whiff_data['PlateLocHeight'],
+                        color='black',
+                        edgecolor='white',
+                        s=300,
+                        alpha=0.7
+                    )
+            
             elif heatmap_type == "Exit Velocity":
-                # Ensure ExitSpeed is valid for KDE
                 exit_vel_data = pitch_type_data.dropna(subset=['ExitSpeed'])
                 sns.kdeplot(
                     x=exit_vel_data['PlateLocSide'],
@@ -225,11 +237,19 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
                     cmap='coolwarm',
                     levels=6,
                     ax=ax,
-                    weights=exit_vel_data['ExitSpeed'],  # Use ExitSpeed as weights for the KDE
+                    weights=exit_vel_data['ExitSpeed'],
                     bw_adjust=0.5 if len(exit_vel_data) > 50 else 1
                 )
+                ax.scatter(
+                    exit_vel_data['PlateLocSide'],
+                    exit_vel_data['PlateLocHeight'],
+                    color='black',
+                    edgecolor='white',
+                    s=300,
+                    alpha=0.7
+                )
             
-            # Plot strike zone
+            # Add strike zone
             strike_zone = patches.Rectangle(
                 (-0.83083, 1.5),
                 1.66166,
@@ -245,7 +265,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
             ax.set_ylim(1, 4)
             ax.set_xticks([])
             ax.set_yticks([])
-            ax.set_title(f"{pitch_type} ({pitcher_name})", fontsize=14)
+            ax.set_title(f"{pitch_type} ({pitcher_name})", fontsize=16)  # Increased font size
             ax.set_aspect('equal', adjustable='box')
         
         # Remove unused axes
@@ -262,6 +282,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
     
     except Exception as e:
         st.error(f"An error occurred while generating heatmaps: {e}")
+
 
 
 
