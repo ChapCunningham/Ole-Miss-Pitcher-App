@@ -7,14 +7,27 @@ import numpy as np
 import math
 from datetime import datetime
 
-# Load the real datase
-file_path = 'FINAL FALL CSV 2024 - filtered_fall_trackman (1).csv'  # Replace with the correct ath in your Streamlit setup
+# File paths for datasets
+fall_file_path = 'FINAL FALL CSV 2024 - filtered_fall_trackman (1).csv'  # Fall dataset
+winter_file_path = 'Winter Preseason.csv'  # Winter dataset
 
 @st.cache_data
 def load_data(file_path):
     return pd.read_csv(file_path, parse_dates=['Date'])  # Parse 'Date' column as datetime
 
-test_df = load_data(file_path)
+# Load Fall and Winter datasets
+fall_df = load_data(fall_file_path)
+winter_df = load_data(winter_file_path)
+
+# Add a column to distinguish datasets
+fall_df['Season'] = 'Fall'
+winter_df['Season'] = 'Winter'
+
+# Combine datasets for "All" option
+all_data_df = pd.concat([fall_df, winter_df])
+
+# Default to "Fall" dataset initially
+test_df = fall_df
 test_df = test_df[test_df['PitcherTeam'] == 'OLE_REB']
 
 # Ensure numeric conversion for the columns where aggregation will be done
@@ -26,10 +39,27 @@ for col in numeric_columns:
     test_df[col] = pd.to_numeric(test_df[col], errors='coerce')
 
 # Streamlit app layout
-st.title("OMBSB Fall Pitcher Reports")
+st.title("OMBSB Pitcher Reports")
 
 # Sidebar for filters
 st.sidebar.header("Filters")
+
+# Dropdown for dataset selection (Fall, Winter, or All)
+dataset_selection = st.sidebar.selectbox(
+    "Select Dataset:",
+    options=['Fall', 'Winter', 'All']
+)
+
+# Apply dataset selection
+if dataset_selection == 'Fall':
+    test_df = fall_df
+elif dataset_selection == 'Winter':
+    test_df = winter_df
+else:  # "All"
+    test_df = all_data_df
+
+# Filter by team
+test_df = test_df[test_df['PitcherTeam'] == 'OLE_REB']
 
 # Dropdown widget to select the pitcher
 pitcher_name = st.sidebar.selectbox(
@@ -115,6 +145,7 @@ def filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, s
         ]
     
     return pitcher_data
+
 
 # Function to create heatmaps for the selected pitcher, batter side, strikes, balls, and date filters
 def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
@@ -225,7 +256,9 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
             fig.delaxes(axes[j])
 
         # Add a main title for all the heatmaps
-        plt.suptitle(f"{pitcher_name} Heat Maps (Batter: {batter_side}, Strikes: {strikes}, Balls: {balls})", fontsize=30, fontweight='bold')
+        season = pitcher_data['Season'].iloc[0] if 'Season' in pitcher_data.columns else "Unknown"
+        plt.suptitle(f"{pitcher_name} Heat Maps ({season} Season, Batter: {batter_side}, Strikes: {strikes}, Balls: {balls})", 
+                     fontsize=30, fontweight='bold')
         
         # Adjust the layout to prevent overlap
         plt.tight_layout(rect=[0, 0, 1, 0.95])  # Leave space at the top for suptitle
@@ -234,6 +267,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
         st.pyplot(fig)
     except Exception as e:
         st.write(f"Error generating heatmaps: {e}")
+
 
 # Function to calculate InZone% and Chase%
 def calculate_in_zone(df):
@@ -266,34 +300,41 @@ def format_dataframe(df):
 
     return df
 
-
-
 # Load CLASS+ CSV into a DataFrame
 class_plus_file_path = "CLASS+ Trained on D1 Data - OM CLASS+ Ind Pitch.csv"  # Replace with the actual path
-class_plus_df = pd.read_csv(class_plus_file_path)
 
-# Rename Pitch Types in CLASS+ DataFrame to match Streamlit app
-pitch_type_mapping = {
-    "4S": "Fastball",
-    "SI": "Sinker",
-    "FC": "Cutter",
-    "SL": "Slider",
-    "CU": "Curveball",
-    "FS": "Splitter",
-    "CH": "ChangeUp"
-}
-class_plus_df["PitchType"] = class_plus_df["PitchType"].map(pitch_type_mapping)
+@st.cache_data
+def load_class_plus_data(file_path):
+    df = pd.read_csv(file_path)
+    
+    # Rename Pitch Types in CLASS+ DataFrame to match Streamlit app
+    pitch_type_mapping = {
+        "4S": "Fastball",
+        "SI": "Sinker",
+        "FC": "Cutter",
+        "SL": "Slider",
+        "CU": "Curveball",
+        "FS": "Splitter",
+        "CH": "ChangeUp"
+    }
+    df["PitchType"] = df["PitchType"].map(pitch_type_mapping)
+    
+    return df
 
-# Function to generate the pitch traits table with CLASS+ scores
+class_plus_df = load_class_plus_data(class_plus_file_path)
+
+
 def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
+        # Filter data based on input parameters
         pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date)
 
+        # Check if filtered data is empty
         if pitcher_data.empty:
             st.write("No data available for the selected parameters.")
             return
 
-        # Group by 'TaggedPitchType' and calculate mean values for each group
+        # Group by 'TaggedPitchType' and calculate aggregated metrics
         grouped_data = pitcher_data.groupby('TaggedPitchType').agg(
             Count=('TaggedPitchType', 'size'),
             RelSpeed=('RelSpeed', 'mean'),
@@ -306,7 +347,7 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             VertApprAngle=('VertApprAngle', 'mean')
         ).reset_index()
 
-        # Rename the columns
+        # Rename columns for clarity
         rename_columns = {
             'TaggedPitchType': 'Pitch',
             'RelSpeed': 'Velo',
@@ -320,8 +361,10 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         }
         grouped_data = grouped_data.rename(columns=rename_columns)
 
-        # Merge with CLASS+ DataFrame
+        # Filter the CLASS+ DataFrame for the selected pitcher
         class_plus_filtered = class_plus_df[class_plus_df["playerFullName"] == pitcher_name]
+
+        # Merge aggregated data with CLASS+ scores
         grouped_data = pd.merge(
             grouped_data,
             class_plus_filtered[["PitchType", "CLASS+"]],  # Select only relevant columns
@@ -330,41 +373,45 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             right_on="PitchType"
         )
 
-        # Drop the extra 'PitchType' column from the merge and handle missing CLASS+ scores
+        # Drop redundant 'PitchType' column and fill missing CLASS+ scores with "N/A"
         grouped_data = grouped_data.drop(columns=["PitchType"], errors="ignore")
         grouped_data["CLASS+"] = grouped_data["CLASS+"].fillna("N/A")
 
-        # Sort by Count (most thrown to least thrown)
+        # Sort by 'Count' (most frequently thrown pitches first)
         grouped_data = grouped_data.sort_values(by='Count', ascending=False)
 
         # Format the data before displaying
         formatted_data = format_dataframe(grouped_data)
 
-        # Display the table in Streamlit
+        # Display the results in Streamlit
         st.subheader("Pitch Traits:")
         st.dataframe(formatted_data)
+    except KeyError as ke:
+        st.error(f"Key error encountered: {ke}. Please check the input data and column names.")
     except Exception as e:
-        st.write(f"Error generating pitch traits table: {e}")
+        st.error(f"An error occurred while generating the pitch traits table: {e}")
 
-# Function to generate the Plate Discipline table with "All" row
+
 def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
-        # Filter data based on the provided filters
+        # Filter data based on input parameters
         pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date)
 
+        # Check if filtered data is empty
         if pitcher_data.empty:
             st.write("No data available for the selected parameters.")
             return
 
-        # Calculate total pitches
+        # Total number of pitches for percentage calculations
         total_pitches = len(pitcher_data)
 
-        # Calculate InZone, Swing, Whiff, Chase, InZoneWhiff, and Strike percentages
+        # Function to calculate plate discipline metrics
         def calculate_metrics(df):
+            # Determine pitches in the strike zone
             in_zone_pitches = calculate_in_zone(df)
             total_in_zone = len(in_zone_pitches)
 
-            # Define what constitutes a swing
+            # Define swing-related conditions
             swing_conditions = ['StrikeSwinging', 'FoulBallFieldable', 'FoulBallNotFieldable', 'InPlay']
             total_swings = df[df['PitchCall'].isin(swing_conditions)].shape[0]
             total_whiffs = df[df['PitchCall'] == 'StrikeSwinging'].shape[0]
@@ -373,12 +420,14 @@ def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls, d
                 df['PitchCall'].isin(swing_conditions)
             ].shape[0]
 
+            # Whiffs in the zone
             in_zone_whiffs = in_zone_pitches[in_zone_pitches['PitchCall'] == 'StrikeSwinging'].shape[0]
 
-            # Define what constitutes a strike
+            # Define strike-related conditions
             strike_conditions = ['StrikeCalled', 'FoulBallFieldable', 'FoulBallNotFieldable', 'StrikeSwinging', 'InPlay']
             total_strikes = df[df['PitchCall'].isin(strike_conditions)].shape[0]
 
+            # Calculate metrics
             metrics = {
                 'InZone%': (total_in_zone / len(df)) * 100 if len(df) > 0 else 0,
                 'Swing%': (total_swings / len(df)) * 100 if len(df) > 0 else 0,
@@ -389,17 +438,17 @@ def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls, d
             }
             return metrics
 
-        # Group by 'TaggedPitchType' and calculate plate discipline metrics
+        # Group data by pitch type and calculate metrics
         plate_discipline_data = pitcher_data.groupby('TaggedPitchType').apply(calculate_metrics).apply(pd.Series).reset_index()
 
-        # Calculate the Pitch% column
+        # Calculate pitch percentage for each pitch type
         plate_discipline_data['Count'] = pitcher_data.groupby('TaggedPitchType')['TaggedPitchType'].count().values
         plate_discipline_data['Pitch%'] = (plate_discipline_data['Count'] / total_pitches) * 100
 
-        # Reorder columns
+        # Reorder columns for display
         plate_discipline_data = plate_discipline_data[['TaggedPitchType', 'Count', 'Pitch%', 'Strike%', 'InZone%', 'Swing%', 'Whiff%', 'Chase%', 'InZoneWhiff%']]
 
-        # Rename columns
+        # Rename columns for readability
         rename_columns = {
             'TaggedPitchType': 'Pitch',
             'Count': 'Count',
@@ -413,7 +462,7 @@ def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls, d
         }
         plate_discipline_data = plate_discipline_data.rename(columns=rename_columns)
 
-        # Calculate "All" row
+        # Calculate aggregate "All" row
         in_zone_pitches = calculate_in_zone(pitcher_data)
         total_swings = pitcher_data[pitcher_data['PitchCall'].isin(['StrikeSwinging', 'FoulBallFieldable', 'FoulBallNotFieldable', 'InPlay'])].shape[0]
         total_whiffs = pitcher_data[pitcher_data['PitchCall'] == 'StrikeSwinging'].shape[0]
@@ -426,8 +475,8 @@ def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls, d
 
         all_row = {
             'Pitch': 'All',
-            'Count': total_pitches,  # Total pitches
-            'Pitch%': 100.0,  # Total percentage is 100%
+            'Count': total_pitches,  # Total number of pitches
+            'Pitch%': 100.0,  # Percentage is 100 for aggregate
             'Strike%': (total_strikes / total_pitches) * 100,
             'InZone%': (in_zone_pitches.shape[0] / total_pitches) * 100,
             'Swing%': (total_swings / total_pitches) * 100,
@@ -436,35 +485,22 @@ def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls, d
             'InZoneWhiff%': (in_zone_whiffs / in_zone_pitches.shape[0]) * 100 if in_zone_pitches.shape[0] > 0 else 0
         }
 
-        # Append "All" row to the DataFrame using pd.concat
+        # Append "All" row to the DataFrame
         all_row_df = pd.DataFrame([all_row])
         plate_discipline_data = pd.concat([plate_discipline_data, all_row_df], ignore_index=True)
 
-        # Format the data for display
+        # Format the DataFrame for display
         formatted_data = format_dataframe(plate_discipline_data)
 
-        # Display the table in Streamlit
+        # Display the results in Streamlit
         st.subheader("Plate Discipline:")
         st.dataframe(formatted_data)
     except Exception as e:
-        st.write(f"Error generating plate discipline table: {e}")
+        st.error(f"An error occurred while generating the plate discipline table: {e}")
 
 
 
-# Define a color dictionary for each pitch type
-color_dict = {
-    'Fastball': 'blue',
-    'Sinker': 'gold',
-    'Slider': 'green',
-    'Curveball': 'red',
-    'Cutter': 'orange',
-    'ChangeUp': 'purple',
-    'Splitter': 'teal',
-    'Unknown': 'black',
-    'Other': 'black'
-}
-
-# Updated plot_pitch_movement function with color dictionary
+# Updated plot_pitch_movement function with color dictionary and enhancements
 def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
         # Filter data based on the selected parameters
@@ -482,14 +518,14 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
             return
 
         # Set up the figure for pitch movement
-        plt.figure(figsize=(8, 8))
+        plt.figure(figsize=(10, 10))
         ax = plt.gca()
 
         # Set axis limits and labels
         ax.set_xlim(-25, 25)
         ax.set_ylim(-25, 25)
-        ax.set_xlabel("Horizontal Break (inches)", fontsize=12)
-        ax.set_ylabel("Induced Vertical Break (inches)", fontsize=12)
+        ax.set_xlabel("Horizontal Break (inches)", fontsize=14)
+        ax.set_ylabel("Induced Vertical Break (inches)", fontsize=14)
         
         # Add grid lines every 5 units
         ax.xaxis.set_major_locator(plt.MultipleLocator(5))
@@ -514,7 +550,7 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
                 pitch_type_data['InducedVertBreak'], 
                 label=pitch_type, 
                 color=color,
-                s=50, 
+                s=70,  # Adjust size of the markers
                 alpha=0.7,
                 zorder=2  # Higher z-order to plot above the lines
             )
@@ -522,20 +558,23 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
             # Calculate the mean and standard deviation for clustering
             mean_horz = pitch_type_data['HorzBreak'].mean()
             mean_vert = pitch_type_data['InducedVertBreak'].mean()
-            std_dev = np.sqrt(pitch_type_data['HorzBreak'].std()**2 + pitch_type_data['InducedVertBreak'].std()**2)
+            std_dev = np.sqrt(
+                pitch_type_data['HorzBreak'].std()**2 + pitch_type_data['InducedVertBreak'].std()**2
+            )
 
             # Draw a circle to represent the cluster area
             circle = plt.Circle((mean_horz, mean_vert), std_dev, color=color, alpha=0.3, zorder=1)
             ax.add_patch(circle)
 
         # Add a legend for pitch types
-        plt.legend(title="Pitch Type", bbox_to_anchor=(1.05, 1), loc='upper left')
+        plt.legend(title="Pitch Type", bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
 
         # Display the plot in Streamlit
-        st.subheader("Pitch Movement Graph:")
+        st.subheader(f"Pitch Movement Graph for {pitcher_name}")
         st.pyplot(plt)
+
     except Exception as e:
-        st.write(f"Error generating pitch movement graph: {e}")
+        st.error(f"An error occurred while generating the pitch movement graph: {e}")
 
 
 
@@ -550,7 +589,7 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
             st.write("No data available for the selected parameters.")
             return
 
-        # Add the 'BattedType' column to categorize batted balls
+        # Categorize batted balls into types based on angle
         def categorize_batted_type(angle):
             if angle < 10:
                 return "GroundBall"
@@ -561,20 +600,20 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
             else:
                 return "PopUp"
 
-        # Create 'BattedType' column for the entire dataset
+        # Create 'BattedType' column
         pitcher_data['BattedType'] = pitcher_data['Angle'].apply(categorize_batted_type)
 
-        # Filter rows where PitchCall is 'InPlay' to calculate BIP
+        # Filter rows where PitchCall is 'InPlay' for BIP calculations
         batted_data = pitcher_data[pitcher_data['PitchCall'] == 'InPlay']
 
         # Group by pitch type and calculate metrics
         batted_ball_summary = batted_data.groupby('TaggedPitchType').agg(
-            BIP=('PitchCall', 'size'),  # Count of balls in play
-            GB=('BattedType', lambda x: (x == "GroundBall").sum()),  # Count of ground balls
-            FB=('BattedType', lambda x: (x == "FlyBall").sum()),  # Count of fly balls
-            EV=('ExitSpeed', 'mean'),  # Average exit velocity
-            Hard=('ExitSpeed', lambda x: (x >= 95).sum()),  # Count of hard-hit balls
-            Soft=('ExitSpeed', lambda x: (x < 95).sum())  # Count of soft-hit balls
+            BIP=('PitchCall', 'size'),
+            GB=('BattedType', lambda x: (x == "GroundBall").sum()),
+            FB=('BattedType', lambda x: (x == "FlyBall").sum()),
+            EV=('ExitSpeed', 'mean'),
+            Hard=('ExitSpeed', lambda x: (x >= 95).sum()),
+            Soft=('ExitSpeed', lambda x: (x < 95).sum())
         ).reset_index()
 
         # Ensure all pitch types are included
@@ -587,17 +626,17 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
             ['BIP', 'GB', 'FB', 'EV', 'Hard', 'Soft']
         ].fillna(0)
 
-        # Add total Count column (all pitches)
+        # Add total pitch counts for each type
         pitch_counts = pitcher_data.groupby('TaggedPitchType')['PitchCall'].count().reset_index(name='Count')
         batted_ball_summary = pd.merge(batted_ball_summary, pitch_counts, on='TaggedPitchType', how='left')
 
-        # Add GB%, FB%, Hard%, Soft%, and Contact% columns
+        # Calculate percentages
         batted_ball_summary['GB%'] = ((batted_ball_summary['GB'] / batted_ball_summary['BIP']) * 100).fillna(0).round(1).astype(str) + '%'
         batted_ball_summary['FB%'] = ((batted_ball_summary['FB'] / batted_ball_summary['BIP']) * 100).fillna(0).round(1).astype(str) + '%'
         batted_ball_summary['Hard%'] = ((batted_ball_summary['Hard'] / batted_ball_summary['BIP']) * 100).fillna(0).round(1).astype(str) + '%'
         batted_ball_summary['Soft%'] = ((batted_ball_summary['Soft'] / batted_ball_summary['BIP']) * 100).fillna(0).round(1).astype(str) + '%'
 
-        # Calculate Contact% for each pitch type
+        # Calculate Contact%
         def calculate_contact(df):
             swings = df[df['PitchCall'].isin(['StrikeSwinging', 'InPlay', 'FoulBallNotFieldable', 'FoulBallFieldable'])].shape[0]
             contact = df[df['PitchCall'].isin(['InPlay', 'FoulBallNotFieldable', 'FoulBallFieldable'])].shape[0]
@@ -608,10 +647,9 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
             contact_values.append(
                 calculate_contact(pitcher_data[pitcher_data['TaggedPitchType'] == pitch_type])
             )
-
         batted_ball_summary['Contact%'] = [f"{round(val, 1)}%" for val in contact_values]
 
-        # Drop intermediate columns (GB, FB, Hard, Soft) after calculation
+        # Drop intermediate columns
         batted_ball_summary = batted_ball_summary.drop(columns=['GB', 'FB', 'Hard', 'Soft'])
 
         # Rename columns for display
@@ -628,20 +666,18 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
         }
         batted_ball_summary = batted_ball_summary.rename(columns=rename_columns)
 
-        # Calculate "All" row for totals and averages
+        # Calculate "All" row
         all_row = {
             'Pitch': 'All',
-            'Count': pitcher_data.shape[0],  # Total count of pitches
-            'BIP': batted_data.shape[0],  # Total BIP
-            'EV': batted_data['ExitSpeed'].mean() if batted_data.shape[0] > 0 else 0,  # Overall average EV
+            'Count': pitcher_data.shape[0],
+            'BIP': batted_data.shape[0],
+            'EV': batted_data['ExitSpeed'].mean() if batted_data.shape[0] > 0 else 0,
             'GB%': f"{round((batted_data['BattedType'] == 'GroundBall').sum() / batted_data.shape[0] * 100, 1) if batted_data.shape[0] > 0 else 0}%",
             'FB%': f"{round((batted_data['BattedType'] == 'FlyBall').sum() / batted_data.shape[0] * 100, 1) if batted_data.shape[0] > 0 else 0}%",
             'Hard%': f"{round((batted_data['ExitSpeed'] >= 95).sum() / batted_data.shape[0] * 100, 1) if batted_data.shape[0] > 0 else 0}%",
             'Soft%': f"{round((batted_data['ExitSpeed'] < 95).sum() / batted_data.shape[0] * 100, 1) if batted_data.shape[0] > 0 else 0}%",
             'Contact%': f"{round(calculate_contact(pitcher_data), 1)}%"
         }
-
-        # Append "All" row to the summary DataFrame using pd.concat()
         all_row_df = pd.DataFrame([all_row])
         batted_ball_summary = pd.concat([batted_ball_summary, all_row_df], ignore_index=True)
 
@@ -649,10 +685,11 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
         formatted_data = format_dataframe(batted_ball_summary)
 
         # Display the table in Streamlit
-        st.subheader("Batted Ball:")
+        st.subheader("Batted Ball Summary")
         st.dataframe(formatted_data)
+
     except Exception as e:
-        st.write(f"Error generating batted ball table: {e}")
+        st.error(f"Error generating batted ball table: {e}")
 
 
 
