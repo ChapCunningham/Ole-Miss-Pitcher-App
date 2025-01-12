@@ -346,8 +346,6 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
     except Exception as e:
         st.write(f"Error generating pitch traits table: {e}")
 
-
-# Function to generate the plate discipline table
 # Function to generate the Plate Discipline table with "All" row
 def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
@@ -416,16 +414,26 @@ def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls, d
         plate_discipline_data = plate_discipline_data.rename(columns=rename_columns)
 
         # Calculate "All" row
+        in_zone_pitches = calculate_in_zone(pitcher_data)
+        total_swings = pitcher_data[pitcher_data['PitchCall'].isin(['StrikeSwinging', 'FoulBallFieldable', 'FoulBallNotFieldable', 'InPlay'])].shape[0]
+        total_whiffs = pitcher_data[pitcher_data['PitchCall'] == 'StrikeSwinging'].shape[0]
+        total_chase = pitcher_data[
+            (~pitcher_data.index.isin(in_zone_pitches.index)) & 
+            pitcher_data['PitchCall'].isin(['StrikeSwinging', 'FoulBallFieldable', 'FoulBallNotFieldable', 'InPlay'])
+        ].shape[0]
+        in_zone_whiffs = in_zone_pitches[in_zone_pitches['PitchCall'] == 'StrikeSwinging'].shape[0]
+        total_strikes = pitcher_data[pitcher_data['PitchCall'].isin(['StrikeCalled', 'FoulBallFieldable', 'FoulBallNotFieldable', 'StrikeSwinging', 'InPlay'])].shape[0]
+
         all_row = {
             'Pitch': 'All',
             'Count': total_pitches,  # Total pitches
             'Pitch%': 100.0,  # Total percentage is 100%
-            'Strike%': (pitcher_data['PitchCall'].isin(['StrikeCalled', 'FoulBallFieldable', 'FoulBallNotFieldable', 'StrikeSwinging', 'InPlay']).sum() / total_pitches) * 100,
-            'InZone%': (calculate_in_zone(pitcher_data).shape[0] / total_pitches) * 100,
-            'Swing%': (pitcher_data['PitchCall'].isin(['StrikeSwinging', 'FoulBallFieldable', 'FoulBallNotFieldable', 'InPlay']).sum() / total_pitches) * 100,
-            'Whiff%': (pitcher_data['PitchCall'] == 'StrikeSwinging').sum() / pitcher_data['PitchCall'].isin(['StrikeSwinging', 'FoulBallFieldable', 'FoulBallNotFieldable', 'InPlay']).sum() * 100,
-            'Chase%': (~calculate_in_zone(pitcher_data).index.isin(pitcher_data.index) & pitcher_data['PitchCall'].isin(['StrikeSwinging', 'FoulBallFieldable', 'FoulBallNotFieldable', 'InPlay'])).sum() / pitcher_data['PitchCall'].isin(['StrikeSwinging', 'FoulBallFieldable', 'FoulBallNotFieldable', 'InPlay']).sum() * 100,
-            'InZoneWhiff%': (calculate_in_zone(pitcher_data)['PitchCall'] == 'StrikeSwinging').sum() / calculate_in_zone(pitcher_data).shape[0] * 100
+            'Strike%': (total_strikes / total_pitches) * 100,
+            'InZone%': (in_zone_pitches.shape[0] / total_pitches) * 100,
+            'Swing%': (total_swings / total_pitches) * 100,
+            'Whiff%': (total_whiffs / total_swings) * 100 if total_swings > 0 else 0,
+            'Chase%': (total_chase / total_swings) * 100 if total_swings > 0 else 0,
+            'InZoneWhiff%': (in_zone_whiffs / in_zone_pitches.shape[0]) * 100 if in_zone_pitches.shape[0] > 0 else 0
         }
 
         # Append "All" row to the DataFrame using pd.concat
