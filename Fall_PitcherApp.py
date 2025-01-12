@@ -285,6 +285,7 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         # Rename the columns
         rename_columns = {
             'TaggedPitchType': 'Pitch',
+            'RelSpeed': 'Velo',
             'InducedVertBreak': 'iVB',
             'HorizontalBreak': 'HB',
             'SpinRate': 'Spin',
