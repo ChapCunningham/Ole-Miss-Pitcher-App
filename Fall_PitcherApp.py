@@ -249,6 +249,7 @@ def calculate_in_zone(df):
 # Function to manually format the dataframe before displaying
 # Function to manually format the dataframe before displaying, with alternating row colors
 # Function to manually format the dataframe before displaying, with rounding and alternating row colors
+# Function to manually format the dataframe before displaying, with rounding and alternating row colors
 def format_dataframe(df):
     df = df.copy()  # Create a copy to avoid warnings
     percent_columns = ['InZone%', 'Swing%', 'Whiff%', 'Chase%', 'InZoneWhiff%']
@@ -269,6 +270,7 @@ def format_dataframe(df):
     )
 
     return styled_df
+
 
 
 # Function to generate the pitch traits table
