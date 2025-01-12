@@ -423,6 +423,33 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         # Sort by 'Count' (most frequently thrown pitches first)
         grouped_data = grouped_data.sort_values(by='Count', ascending=False)
 
+        # Calculate "All" row
+        total_count = grouped_data["Count"].sum()
+        weighted_averages = {
+            column: np.average(
+                grouped_data[column], weights=grouped_data["Count"]
+            ) if grouped_data[column].dtype.kind in 'fc' else "N/A"
+            for column in ['Velo', 'iVB', 'HB', 'Spin', 'RelH', 'RelS', 'Ext', 'VAA']
+        }
+
+        all_row = {
+            'Pitch': 'All',
+            'Count': total_count,
+            'Velo': round(weighted_averages['Velo'], 2) if pd.notna(weighted_averages['Velo']) else 'N/A',
+            'iVB': round(weighted_averages['iVB'], 2) if pd.notna(weighted_averages['iVB']) else 'N/A',
+            'HB': round(weighted_averages['HB'], 2) if pd.notna(weighted_averages['HB']) else 'N/A',
+            'Spin': round(weighted_averages['Spin'], 2) if pd.notna(weighted_averages['Spin']) else 'N/A',
+            'RelH': round(weighted_averages['RelH'], 2) if pd.notna(weighted_averages['RelH']) else 'N/A',
+            'RelS': round(weighted_averages['RelS'], 2) if pd.notna(weighted_averages['RelS']) else 'N/A',
+            'Ext': round(weighted_averages['Ext'], 2) if pd.notna(weighted_averages['Ext']) else 'N/A',
+            'VAA': round(weighted_averages['VAA'], 2) if pd.notna(weighted_averages['VAA']) else 'N/A',
+            'CLASS+': 'N/A'  # CLASS+ is not applicable for the "All" row
+        }
+
+        # Append "All" row to the DataFrame
+        all_row_df = pd.DataFrame([all_row])
+        grouped_data = pd.concat([grouped_data, all_row_df], ignore_index=True)
+
         # Format the data before displaying
         formatted_data = format_dataframe(grouped_data)
 
