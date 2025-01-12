@@ -209,7 +209,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
                 pitch_type_data['PlateLocHeight'], 
                 color='black',  # Color for the dots
                 edgecolor='white',  # Add a white border to make dots stand out
-                s=50,  # Size of the dots
+                s=300,  # Size of the dots
                 alpha=0.7  # Transparency to allow overlap
             )
             
