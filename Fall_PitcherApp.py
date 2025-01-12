@@ -499,6 +499,71 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
     except Exception as e:
         st.write(f"Error generating pitch movement graph: {e}")
 
+# Function to generate the Batted Ball table
+def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
+    try:
+        # Filter data based on the provided filters
+        pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date)
+
+        if pitcher_data.empty:
+            st.write("No data available for the selected parameters.")
+            return
+
+        # Filter rows where PitchCall is 'InPlay' to calculate BIP
+        batted_data = pitcher_data[pitcher_data['PitchCall'] == 'InPlay']
+
+        if batted_data.empty:
+            st.write("No batted ball data available for the selected parameters.")
+            return
+
+        # Create a new column 'BattedType' based on the 'Angle' (launch angle)
+        def categorize_batted_type(angle):
+            if angle < 10:
+                return "GroundBall"
+            elif 10 <= angle < 25:
+                return "LineDrive"
+            elif 25 <= angle < 50:
+                return "FlyBall"
+            else:
+                return "PopUp"
+
+        batted_data['BattedType'] = batted_data['Angle'].apply(categorize_batted_type)
+
+        # Group by pitch type and calculate metrics
+        batted_ball_summary = batted_data.groupby('TaggedPitchType').agg(
+            BIP=('PitchCall', 'size'),  # Count of balls in play
+            GB=('BattedType', lambda x: (x == "GroundBall").sum()),  # Count of ground balls
+            FB=('BattedType', lambda x: (x == "FlyBall").sum()),  # Count of fly balls
+            EV=('ExitSpeed', 'mean')  # Average exit velocity
+        ).reset_index()
+
+        # Add GB% and FB% columns
+        batted_ball_summary['GB%'] = (batted_ball_summary['GB'] / batted_ball_summary['BIP']) * 100
+        batted_ball_summary['FB%'] = (batted_ball_summary['FB'] / batted_ball_summary['BIP']) * 100
+
+        # Drop GB and FB columns (intermediate calculations)
+        batted_ball_summary = batted_ball_summary.drop(columns=['GB', 'FB'])
+
+        # Rename columns for display
+        rename_columns = {
+            'TaggedPitchType': 'Pitch',
+            'BIP': 'BIP',
+            'EV': 'EV',
+            'GB%': 'GB%',
+            'FB%': 'FB%'
+        }
+        batted_ball_summary = batted_ball_summary.rename(columns=rename_columns)
+
+        # Format the data for display
+        formatted_data = format_dataframe(batted_ball_summary)
+
+        # Display the table in Streamlit
+        st.subheader("Batted Ball:")
+        st.dataframe(formatted_data)
+    except Exception as e:
+        st.write(f"Error generating batted ball table: {e}")
+
+
 
 
 
