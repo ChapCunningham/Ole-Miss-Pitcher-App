@@ -184,6 +184,16 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
         for i, (ax, pitch_type) in enumerate(zip(axes, unique_pitch_types)):
             pitch_type_data = plot_data[plot_data['TaggedPitchType'] == pitch_type]
             
+            # Individual pitches
+            ax.scatter(
+                pitch_type_data['PlateLocSide'],
+                pitch_type_data['PlateLocHeight'],
+                color='black',
+                edgecolor='white',
+                s=300,  # Adjust dot size
+                alpha=0.7
+            )
+            
             if heatmap_type == "Frequency":
                 sns.kdeplot(
                     x=pitch_type_data['PlateLocSide'],
@@ -191,7 +201,8 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
                     fill=True,
                     cmap='Spectral_r',
                     levels=6,
-                    ax=ax
+                    ax=ax,
+                    bw_adjust=0.5 if len(pitch_type_data) > 50 else 1
                 )
             elif heatmap_type == "Whiff":
                 whiff_data = pitch_type_data[pitch_type_data['PitchCall'] == 'StrikeSwinging']
@@ -201,22 +212,21 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
                     fill=True,
                     cmap='coolwarm',
                     levels=6,
-                    ax=ax
+                    ax=ax,
+                    bw_adjust=0.5 if len(whiff_data) > 50 else 1
                 )
             elif heatmap_type == "Exit Velocity":
-                ev_pivot = pitch_type_data.pivot_table(
-                    values='ExitSpeed',
-                    index='PlateLocHeight',
-                    columns='PlateLocSide',
-                    aggfunc='mean'
-                )
-                sns.heatmap(
-                    ev_pivot,
+                # Ensure ExitSpeed is valid for KDE
+                exit_vel_data = pitch_type_data.dropna(subset=['ExitSpeed'])
+                sns.kdeplot(
+                    x=exit_vel_data['PlateLocSide'],
+                    y=exit_vel_data['PlateLocHeight'],
+                    fill=True,
                     cmap='coolwarm',
+                    levels=6,
                     ax=ax,
-                    cbar_kws={'label': 'Exit Velocity'},
-                    vmin=90,
-                    vmax=110
+                    weights=exit_vel_data['ExitSpeed'],  # Use ExitSpeed as weights for the KDE
+                    bw_adjust=0.5 if len(exit_vel_data) > 50 else 1
                 )
             
             # Plot strike zone
@@ -243,7 +253,8 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
             fig.delaxes(axes[j])
         
         # Add main title
-        plt.suptitle(f"{pitcher_name} {heatmap_type} Heatmap", fontsize=24, fontweight='bold')
+        season = plot_data['Season'].iloc[0] if 'Season' in plot_data.columns else "Unknown"
+        plt.suptitle(f"{pitcher_name} {heatmap_type} Heatmap ({season} Season)", fontsize=24, fontweight='bold')
         plt.tight_layout(rect=[0, 0, 1, 0.95])
         
         # Show heatmap in Streamlit
