@@ -153,133 +153,130 @@ def filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, s
     return pitcher_data
 
 
-def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date, heatmap_type="Frequency"):
-    """
-    Generate heatmaps for the selected pitcher with options for Frequency, Whiff, and Exit Velocity.
-    
-    Parameters:
-    - heatmap_type: "Frequency", "Whiff", or "Exit Velocity"
-    """
+# Function to create heatmaps for Frequency, Whiff, or Exit Velocity
+def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date, map_type):
     try:
         # Filter data with date parameters
         pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date)
-
+        
         if pitcher_data.empty:
             st.write("No data available for the selected parameters.")
             return
-
-        # Remove rows where PlateLocSide or PlateLocHeight is NaN
+        
+        # Remove rows where PlateLocSide or PlateLocHeight is NaN, for plotting purposes only
         plot_data = pitcher_data.dropna(subset=['PlateLocSide', 'PlateLocHeight'])
+        
         if plot_data.empty:
             st.write("No data available to plot after filtering.")
             return
-
-        # Filter data for heatmap-specific conditions
-        if heatmap_type == "Whiff":
-            plot_data = plot_data[plot_data['PitchCall'] == 'StrikeSwinging']
-        elif heatmap_type == "Exit Velocity":
-            plot_data = plot_data.dropna(subset=['ExitSpeed'])
-
+        
         # Get unique pitch types thrown by the selected pitcher
         unique_pitch_types = plot_data['TaggedPitchType'].unique()
-
-        # Set up subplots
+        
+        # Limit number of subplots per row (e.g., 3 per row)
         n_pitch_types = len(unique_pitch_types)
-        plots_per_row = 3
-        n_rows = math.ceil(n_pitch_types / plots_per_row)
-        fig, axes = plt.subplots(n_rows, plots_per_row, figsize=(12 * plots_per_row, 16 * n_rows))
-        axes = axes.flatten() if n_pitch_types > 1 else [axes]
+        plots_per_row = 3  # Set number of plots per row
+        n_rows = math.ceil(n_pitch_types / plots_per_row)  # Calculate the number of rows needed
+        
+        # Adjust figure size dynamically
+        fig_width = 12 * plots_per_row  # Set width based on number of plots per row
+        fig_height = 16 * n_rows  # Set height to fit all rows
 
+        # Create subplots with the appropriate number of rows and columns
+        fig, axes = plt.subplots(n_rows, plots_per_row, figsize=(fig_width, fig_height))
+        
+        if n_pitch_types == 1:
+            axes = [axes]  # Ensure axes is iterable
+        else:
+            axes = axes.flatten()  # Flatten axes array for easier access
+
+        # Loop over each unique pitch type and create heatmaps
         for i, (ax, pitch_type) in enumerate(zip(axes, unique_pitch_types)):
             pitch_type_data = plot_data[plot_data['TaggedPitchType'] == pitch_type]
+            
+            if map_type == 'Frequency':
+                # All pitches are used for frequency maps
+                heatmap_data = pitch_type_data
+            elif map_type == 'Whiff':
+                # Only use pitches with 'StrikeSwinging' for heatmap
+                heatmap_data = pitch_type_data[pitch_type_data['PitchCall'] == 'StrikeSwinging']
+            elif map_type == 'Exit Velocity':
+                # Use all pitches for Exit Velocity but map ExitSpeed
+                heatmap_data = pitch_type_data
 
-            # Adjust heatmap logic based on type
-            if len(pitch_type_data) < 5:
-                # Plot scatter only if less than 5 points
-                ax.scatter(
-                    pitch_type_data['PlateLocSide'], 
-                    pitch_type_data['PlateLocHeight'], 
-                    color='black', 
-                    edgecolor='white', 
-                    s=300, 
-                    alpha=0.7
-                )
-            else:
-                # Plot heatmap and scatter for 5+ points
-                if heatmap_type == "Frequency":
-                    sns.kdeplot(
-                        x=pitch_type_data['PlateLocSide'], 
-                        y=pitch_type_data['PlateLocHeight'], 
-                        fill=True, 
-                        cmap='Spectral_r', 
-                        levels=6, 
-                        ax=ax,
-                        bw_adjust=0.5 if len(pitch_type_data) > 50 else 1
-                    )
-                elif heatmap_type == "Whiff":
-                    sns.kdeplot(
-                        x=pitch_type_data['PlateLocSide'], 
-                        y=pitch_type_data['PlateLocHeight'], 
-                        fill=True, 
-                        cmap='Blues', 
-                        levels=6, 
-                        ax=ax,
-                        bw_adjust=0.5 if len(pitch_type_data) > 50 else 1
-                    )
-                elif heatmap_type == "Exit Velocity":
-                    sns.kdeplot(
-                        x=pitch_type_data['PlateLocSide'], 
-                        y=pitch_type_data['PlateLocHeight'], 
-                        fill=True, 
-                        cmap='coolwarm', 
-                        levels=6, 
-                        ax=ax,
-                        bw_adjust=0.5 if len(pitch_type_data) > 50 else 1
-                    )
-
-                # Overlay scatter
-                ax.scatter(
-                    pitch_type_data['PlateLocSide'], 
-                    pitch_type_data['PlateLocHeight'], 
-                    color='black', 
-                    edgecolor='white', 
-                    s=300, 
-                    alpha=0.7
+            # Scatter plot for all pitches
+            ax.scatter(
+                pitch_type_data['PlateLocSide'], 
+                pitch_type_data['PlateLocHeight'], 
+                color='black',  # Color for the dots
+                edgecolor='white',  # Add a white border to make dots stand out
+                s=50,  # Size of the dots
+                alpha=0.7  # Transparency to allow overlap
+            )
+            
+            # Check if enough data points exist for a heatmap
+            if len(heatmap_data) >= 5:
+                bw_adjust_value = 0.5 if len(heatmap_data) > 50 else 1  # Adjust bandwidth for small datasets
+                sns.kdeplot(
+                    x=heatmap_data['PlateLocSide'], 
+                    y=heatmap_data['PlateLocHeight'], 
+                    fill=True, 
+                    cmap='Spectral_r' if map_type == 'Frequency' else 'coolwarm', 
+                    levels=6, 
+                    ax=ax,
+                    bw_adjust=bw_adjust_value
                 )
 
-            # Add strike zone
+            # Add strike zone as a rectangle with black edgecolor
+            strike_zone_width = 1.66166  # feet changed for widest raw strike (formerly 17/12)
+            strike_zone_params = {
+                'x_start': -strike_zone_width / 2,
+                'y_start': 1.5,
+                'width': strike_zone_width,
+                'height': 3.3775 - 1.5
+            }
             strike_zone = patches.Rectangle(
-                (-0.83083, 1.5), 
-                1.66166, 
-                3.3775 - 1.5, 
-                edgecolor='black', 
-                facecolor='none', 
+                (strike_zone_params['x_start'], strike_zone_params['y_start']),
+                strike_zone_params['width'],
+                strike_zone_params['height'],
+                edgecolor='black',  # Black edge color for the strike zone
+                facecolor='none',
                 linewidth=2
             )
             ax.add_patch(strike_zone)
-
-            # Set titles and labels
+            
+            # Set axis limits and remove ticks
             ax.set_xlim(-2, 2)
             ax.set_ylim(1, 4)
-            ax.set_xticks([])
-            ax.set_yticks([])
-            ax.set_title(f"{pitch_type} ({pitcher_name})", fontsize=24, fontweight='bold')
-            ax.set_aspect('equal', adjustable='box')
+            ax.set_xticks([])  # Remove x-ticks
+            ax.set_yticks([])  # Remove y-ticks
+            
+            # Remove axis labels
+            ax.set_xlabel('')
+            ax.set_ylabel('')
+            
+            # Set pitch type as title
+            ax.set_title(f"{pitch_type} ({pitcher_name})", fontsize=24)  # Increased font size
 
-        # Remove unused axes
+            # Equal aspect ratio
+            ax.set_aspect('equal', adjustable='box')
+        
+        # Remove any unused subplots
         for j in range(len(unique_pitch_types), len(axes)):
             fig.delaxes(axes[j])
 
-        # Add a main title
-        season = plot_data['Season'].iloc[0] if 'Season' in plot_data.columns else "Unknown"
-        plt.suptitle(f"{pitcher_name} {heatmap_type} Heatmap ({season} Season)", fontsize=30, fontweight='bold')
-        plt.tight_layout(rect=[0, 0, 1, 0.95])
-
-        # Show the heatmap in Streamlit
+        # Add a main title for all the heatmaps
+        season = pitcher_data['Season'].iloc[0] if 'Season' in pitcher_data.columns else "Unknown"
+        plt.suptitle(f"{pitcher_name} {map_type} Heatmap ({season} Season)", 
+                     fontsize=30, fontweight='bold')
+        
+        # Adjust the layout to prevent overlap
+        plt.tight_layout(rect=[0, 0, 1, 0.95])  # Leave space at the top for suptitle
+        
+        # Show the updated figure
         st.pyplot(fig)
-
     except Exception as e:
-        st.error(f"An error occurred while generating {heatmap_type} heatmaps: {e}")
+        st.write(f"Error generating {map_type} heatmaps: {e}")
 
 
 
