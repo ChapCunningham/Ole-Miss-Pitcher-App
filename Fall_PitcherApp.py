@@ -603,6 +603,17 @@ generate_pitch_traits_table(
     end_date
 )
 
+generate_batted_ball_table(
+    pitcher_name,
+    batter_side,
+    strikes,
+    balls,
+    date_filter_option,
+    selected_date,
+    start_date,
+    end_date
+)
+
 
 plot_pitch_movement(
     pitcher_name, 
