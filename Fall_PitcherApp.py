@@ -425,20 +425,23 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
 
         # Calculate "All" row
         total_count = grouped_data["Count"].sum()
+
+        # Ensure numeric columns for weighted average calculation
+        numeric_columns = ['Velo', 'iVB', 'HB', 'Spin', 'RelH', 'RelS', 'Ext', 'VAA']
+        grouped_data[numeric_columns] = grouped_data[numeric_columns].apply(pd.to_numeric, errors='coerce')
+
         weighted_averages = {
             column: np.average(
-                grouped_data[column], weights=grouped_data["Count"]
-            ) if grouped_data[column].dtype.kind in 'fc' else "N/A"
-            for column in ['Velo', 'iVB', 'HB', 'Spin', 'RelH', 'RelS', 'Ext', 'VAA']
+                grouped_data[column].dropna(), weights=grouped_data["Count"].loc[grouped_data[column].notna()]
+            ) if grouped_data[column].notna().any() else "N/A"
+            for column in numeric_columns
         }
 
         # Calculate the weighted average for CLASS+
+        valid_class_plus = grouped_data.loc[grouped_data["CLASS+"] != "N/A", "CLASS+"].astype(float)
+        valid_class_plus_weights = grouped_data.loc[grouped_data["CLASS+"] != "N/A", "Count"]
         class_plus_weighted_avg = (
-            np.average(
-                grouped_data.loc[grouped_data["CLASS+"] != "N/A", "CLASS+"],
-                weights=grouped_data.loc[grouped_data["CLASS+"] != "N/A", "Count"]
-            )
-            if grouped_data["CLASS+"].dtype.kind in 'fc' and total_count > 0 else "N/A"
+            np.average(valid_class_plus, weights=valid_class_plus_weights) if not valid_class_plus.empty else "N/A"
         )
 
         all_row = {
@@ -469,7 +472,6 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         st.error(f"Key error encountered: {ke}. Please check the input data and column names.")
     except Exception as e:
         st.error(f"An error occurred while generating the pitch traits table: {e}")
-
 
 
 
