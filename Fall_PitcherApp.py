@@ -499,8 +499,21 @@ def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls, d
         st.error(f"An error occurred while generating the plate discipline table: {e}")
 
 
+# Define a color dictionary for each pitch type
+color_dict = {
+    'Fastball': 'blue',
+    'Sinker': 'gold',
+    'Slider': 'green',
+    'Curveball': 'red',
+    'Cutter': 'orange',
+    'ChangeUp': 'purple',
+    'Splitter': 'teal',
+    'Unknown': 'black',
+    'Other': 'black'
+}
 
-# Updated plot_pitch_movement function with color dictionary and enhancements
+
+
 def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
         # Filter data based on the selected parameters
@@ -526,7 +539,7 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
         ax.set_ylim(-25, 25)
         ax.set_xlabel("Horizontal Break (inches)", fontsize=14)
         ax.set_ylabel("Induced Vertical Break (inches)", fontsize=14)
-        
+
         # Add grid lines every 5 units
         ax.xaxis.set_major_locator(plt.MultipleLocator(5))
         ax.yaxis.set_major_locator(plt.MultipleLocator(5))
@@ -540,15 +553,15 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
         unique_pitch_types = movement_data['TaggedPitchType'].unique()
         for pitch_type in unique_pitch_types:
             pitch_type_data = movement_data[movement_data['TaggedPitchType'] == pitch_type]
-            
+
             # Set color based on pitch type, default to black for unknown types
             color = color_dict.get(pitch_type, 'black')
-            
+
             # Plot individual pitches
             plt.scatter(
-                pitch_type_data['HorzBreak'], 
-                pitch_type_data['InducedVertBreak'], 
-                label=pitch_type, 
+                pitch_type_data['HorzBreak'],
+                pitch_type_data['InducedVertBreak'],
+                label=pitch_type,
                 color=color,
                 s=70,  # Adjust size of the markers
                 alpha=0.7,
@@ -575,6 +588,7 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
 
     except Exception as e:
         st.error(f"An error occurred while generating the pitch movement graph: {e}")
+
 
 
 
