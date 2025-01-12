@@ -185,6 +185,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
             pitch_type_data = plot_data[plot_data['TaggedPitchType'] == pitch_type]
             
             if heatmap_type == "Frequency":
+                # Plot the heatmap
                 sns.kdeplot(
                     x=pitch_type_data['PlateLocSide'],
                     y=pitch_type_data['PlateLocHeight'],
@@ -193,6 +194,15 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
                     levels=6,
                     ax=ax,
                     bw_adjust=0.5 if len(pitch_type_data) > 50 else 1
+                )
+                # Plot the individual pitches
+                ax.scatter(
+                    pitch_type_data['PlateLocSide'],
+                    pitch_type_data['PlateLocHeight'],
+                    color='black',
+                    edgecolor='white',
+                    s=300,
+                    alpha=0.7
                 )
             
             elif heatmap_type == "Whiff":
@@ -282,6 +292,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
     
     except Exception as e:
         st.error(f"An error occurred while generating heatmaps: {e}")
+
 
 
 
