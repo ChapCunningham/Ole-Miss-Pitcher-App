@@ -500,6 +500,7 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
         st.write(f"Error generating pitch movement graph: {e}")
 
 # Function to generate the Batted Ball table
+# Function to generate the Batted Ball table
 def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
         # Filter data based on the provided filters
@@ -534,15 +535,19 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
             BIP=('PitchCall', 'size'),  # Count of balls in play
             GB=('BattedType', lambda x: (x == "GroundBall").sum()),  # Count of ground balls
             FB=('BattedType', lambda x: (x == "FlyBall").sum()),  # Count of fly balls
-            EV=('ExitSpeed', 'mean')  # Average exit velocity
+            EV=('ExitSpeed', 'mean'),  # Average exit velocity
+            Hard=('ExitSpeed', lambda x: (x >= 95).sum()),  # Count of hard-hit balls
+            Soft=('ExitSpeed', lambda x: (x < 95).sum())  # Count of soft-hit balls
         ).reset_index()
 
-        # Add GB% and FB% columns
+        # Add GB%, FB%, Hard%, and Soft% columns
         batted_ball_summary['GB%'] = (batted_ball_summary['GB'] / batted_ball_summary['BIP']) * 100
         batted_ball_summary['FB%'] = (batted_ball_summary['FB'] / batted_ball_summary['BIP']) * 100
+        batted_ball_summary['Hard%'] = (batted_ball_summary['Hard'] / batted_ball_summary['BIP']) * 100
+        batted_ball_summary['Soft%'] = (batted_ball_summary['Soft'] / batted_ball_summary['BIP']) * 100
 
-        # Drop GB and FB columns (intermediate calculations)
-        batted_ball_summary = batted_ball_summary.drop(columns=['GB', 'FB'])
+        # Drop intermediate columns (GB, FB, Hard, Soft) after calculation
+        batted_ball_summary = batted_ball_summary.drop(columns=['GB', 'FB', 'Hard', 'Soft'])
 
         # Rename columns for display
         rename_columns = {
@@ -550,7 +555,9 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
             'BIP': 'BIP',
             'EV': 'EV',
             'GB%': 'GB%',
-            'FB%': 'FB%'
+            'FB%': 'FB%',
+            'Hard%': 'Hard%',
+            'Soft%': 'Soft%'
         }
         batted_ball_summary = batted_ball_summary.rename(columns=rename_columns)
 
@@ -562,6 +569,7 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
         st.dataframe(formatted_data)
     except Exception as e:
         st.write(f"Error generating batted ball table: {e}")
+
 
 
 
