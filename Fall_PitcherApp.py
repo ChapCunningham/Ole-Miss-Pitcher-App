@@ -153,7 +153,6 @@ def filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, s
     return pitcher_data
 
 
-# Function to create heatmaps for Frequency, Whiff, or Exit Velocity
 def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date, map_type):
     try:
         # Filter data with date parameters
