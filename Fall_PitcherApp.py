@@ -248,14 +248,15 @@ def calculate_in_zone(df):
 
 # Function to manually format the dataframe before displaying
 # Function to manually format the dataframe before displaying, with alternating row colors
+# Function to manually format the dataframe before displaying, with rounding and alternating row colors
 def format_dataframe(df):
     df = df.copy()  # Create a copy to avoid warnings
     percent_columns = ['InZone%', 'Swing%', 'Whiff%', 'Chase%', 'InZoneWhiff%']
 
-    # Format percentages and floats
+    # Round numeric columns before styling
     for col in df.columns:
         if col in percent_columns:
-            df[col] = df[col].apply(lambda x: f"{round(x, 2)}%" if pd.notna(x) and isinstance(x, (int, float)) else 'N/A')  # Add % symbol to percentage columns
+            df[col] = df[col].apply(lambda x: f"{round(x, 2)}%" if pd.notna(x) and isinstance(x, (int, float)) else 'N/A')  # Add % symbol
         elif df[col].dtype.kind in 'f':  # if it's a float type column
             df[col] = df[col].apply(lambda x: round(x, 2) if pd.notna(x) else 'N/A')
         else:
