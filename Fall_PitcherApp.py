@@ -809,6 +809,7 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
 
 
 # Generate heatmaps based on selections
+# Generate heatmaps based on selections
 plot_heatmaps(
     pitcher_name, 
     batter_side, 
@@ -817,8 +818,10 @@ plot_heatmaps(
     date_filter_option, 
     selected_date, 
     start_date, 
-    end_date
+    end_date,
+    heatmap_type  # Pass the selected heatmap type
 )
+
 
 # Generate and display the pitch traits and plate discipline tables
 generate_plate_discipline_table(
