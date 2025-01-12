@@ -324,6 +324,37 @@ def load_class_plus_data(file_path):
 class_plus_df = load_class_plus_data(class_plus_file_path)
 
 
+# File path for Winter CLASS+ dataset
+winter_class_plus_file_path = "Winter Preszn OM CLASS+.csv"
+
+# Load Winter CLASS+ CSV
+@st.cache_data
+def load_winter_class_plus_data(file_path):
+    df = pd.read_csv(file_path)
+    df['Season'] = 'Winter'  # Add season identifier
+    # Rename pitch types to match other datasets
+    df["PitchType"] = df["PitchType"].map({
+        "4S": "Fastball",
+        "SI": "Sinker",
+        "FC": "Cutter",
+        "SL": "Slider",
+        "CU": "Curveball",
+        "FS": "Splitter",
+        "CH": "ChangeUp"
+    })
+    return df
+
+# Load the Winter CLASS+ dataset
+winter_class_plus_df = load_winter_class_plus_data(winter_class_plus_file_path)
+
+# Add Season identifier to Fall CLASS+ dataset
+class_plus_df['Season'] = 'Fall'
+
+# Combine Fall and Winter CLASS+ datasets
+all_class_plus_df = pd.concat([class_plus_df, winter_class_plus_df])
+
+
+
 def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
         # Filter data based on input parameters
@@ -361,13 +392,25 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         }
         grouped_data = grouped_data.rename(columns=rename_columns)
 
-        # Filter the CLASS+ DataFrame for the selected pitcher
-        class_plus_filtered = class_plus_df[class_plus_df["playerFullName"] == pitcher_name]
+        # Select CLASS+ data based on dataset selection
+        if dataset_selection == 'Fall':
+            filtered_class_plus = class_plus_df[class_plus_df["playerFullName"] == pitcher_name]
+        elif dataset_selection == 'Winter':
+            filtered_class_plus = winter_class_plus_df[winter_class_plus_df["playerFullName"] == pitcher_name]
+        else:  # "All" option - Calculate weighted average
+            filtered_class_plus = all_class_plus_df[all_class_plus_df["playerFullName"] == pitcher_name]
+            filtered_class_plus = (
+                filtered_class_plus.groupby("PitchType")
+                .apply(lambda x: pd.Series({
+                    "CLASS+": np.average(x["CLASS+"], weights=x["Count"]) if "Count" in x else x["CLASS+"].mean()
+                }))
+                .reset_index()
+            )
 
         # Merge aggregated data with CLASS+ scores
         grouped_data = pd.merge(
             grouped_data,
-            class_plus_filtered[["PitchType", "CLASS+"]],  # Select only relevant columns
+            filtered_class_plus[["PitchType", "CLASS+"]],  # Select only relevant columns
             how="left",
             left_on="Pitch",
             right_on="PitchType"
@@ -390,6 +433,7 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         st.error(f"Key error encountered: {ke}. Please check the input data and column names.")
     except Exception as e:
         st.error(f"An error occurred while generating the pitch traits table: {e}")
+
 
 
 def generate_plate_discipline_table(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
