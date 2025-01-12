@@ -274,7 +274,7 @@ class_plus_df = pd.read_csv(class_plus_file_path)
 
 # Rename Pitch Types in CLASS+ DataFrame to match Streamlit app
 pitch_type_mapping = {
-    "FF": "Fastball",
+    "FS": "Fastball",
     "SI": "Sinker",
     "FC": "Cutter",
     "SL": "Slider",
