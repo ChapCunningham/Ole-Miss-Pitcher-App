@@ -247,10 +247,12 @@ def calculate_in_zone(df):
     return in_zone
 
 # Function to manually format the dataframe before displaying
+# Function to manually format the dataframe before displaying, with alternating row colors
 def format_dataframe(df):
     df = df.copy()  # Create a copy to avoid warnings
     percent_columns = ['InZone%', 'Swing%', 'Whiff%', 'Chase%', 'InZoneWhiff%']
-    
+
+    # Format percentages and floats
     for col in df.columns:
         if col in percent_columns:
             df[col] = df[col].apply(lambda x: f"{round(x, 2)}%" if pd.notna(x) and isinstance(x, (int, float)) else 'N/A')  # Add % symbol to percentage columns
@@ -258,7 +260,15 @@ def format_dataframe(df):
             df[col] = df[col].apply(lambda x: round(x, 2) if pd.notna(x) else 'N/A')
         else:
             df[col] = df[col].fillna('N/A')  # Fill NaN with N/A for non-float columns
-    return df
+
+    # Apply alternating row colors using Pandas Styler
+    styled_df = df.style.apply(
+        lambda x: ['background-color: #f9f9f9' if i % 2 == 0 else 'background-color: #ffffff' for i in range(len(x))],
+        axis=0
+    )
+
+    return styled_df
+
 
 # Function to generate the pitch traits table
 def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
