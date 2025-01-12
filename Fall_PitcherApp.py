@@ -269,7 +269,7 @@ def format_dataframe(df):
 
 
 # Load CLASS+ CSV into a DataFrame
-class_plus_file_path = "path_to_class_plus.csv"  # Replace with the actual path
+class_plus_file_path = "CLASS+ Trained on D1 Data - OM CLASS+ Ind Pitch.csv"  # Replace with the actual path
 class_plus_df = pd.read_csv(class_plus_file_path)
 
 # Rename Pitch Types in CLASS+ DataFrame to match Streamlit app
