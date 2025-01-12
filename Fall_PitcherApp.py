@@ -503,6 +503,7 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
 
 
 # Function to generate the Batted Ball table
+# Function to generate the Batted Ball table
 def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
         # Filter data based on the provided filters
@@ -574,8 +575,9 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
             'Soft%': (batted_data['ExitSpeed'] < 95).sum() / batted_ball_summary['BIP'].sum() * 100  # Overall Soft%
         }
 
-        # Append "All" row to the summary DataFrame
-        batted_ball_summary = batted_ball_summary.append(all_row, ignore_index=True)
+        # Append "All" row to the summary DataFrame using pd.concat()
+        all_row_df = pd.DataFrame([all_row])  # Convert the dictionary to a DataFrame
+        batted_ball_summary = pd.concat([batted_ball_summary, all_row_df], ignore_index=True)
 
         # Format the data for display
         formatted_data = format_dataframe(batted_ball_summary)
@@ -585,6 +587,7 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
         st.dataframe(formatted_data)
     except Exception as e:
         st.write(f"Error generating batted ball table: {e}")
+
 
 
 
