@@ -28,7 +28,8 @@ all_data_df = pd.concat([fall_df, winter_df])
 
 # Default to "Fall" dataset initially
 test_df = fall_df
-test_df = test_df[test_df['PitcherTeam'] == 'OLE_REB']
+test_df = test_df[test_df['PitcherTeam'].isin(['OLE_REB', 'OLE_PRAC'])]
+
 
 # Ensure numeric conversion for the columns where aggregation will be done
 numeric_columns = ['RelSpeed', 'SpinRate', 'Tilt', 'RelHeight', 'RelSide', 
@@ -59,7 +60,9 @@ else:  # "All"
     test_df = all_data_df
 
 # Filter by team
-test_df = test_df[test_df['PitcherTeam'] == 'OLE_REB']
+test_df = fall_df
+test_df = test_df[test_df['PitcherTeam'].isin(['OLE_REB', 'OLE_PRAC'])]
+
 
 # Dropdown widget to select the pitcher
 pitcher_name = st.sidebar.selectbox(
