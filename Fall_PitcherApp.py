@@ -28,7 +28,7 @@ all_data_df = pd.concat([fall_df, winter_df])
 
 # Default to "Fall" dataset initially
 test_df = fall_df
-test_df = test_df[test_df['PitcherTeam'].isin(['OLE_REB', 'OLE_PRAC'])]
+test_df = test_df[test_df['PitcherTeam'] == 'OLE_REB']
 
 
 # Ensure numeric conversion for the columns where aggregation will be done
@@ -60,7 +60,6 @@ else:  # "All"
     test_df = all_data_df
 
 # Filter by team
-test_df = fall_df
 test_df = test_df[test_df['PitcherTeam'].isin(['OLE_REB', 'OLE_PRAC'])]
 
 
