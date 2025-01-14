@@ -363,7 +363,7 @@ class_plus_df = load_class_plus_data(class_plus_file_path)
 
 
 # File path for Winter CLASS+ dataset
-winter_class_plus_file_path = "CLASS+ Trained on D1 Data - Preseason OM Class+.csv"
+winter_class_plus_file_path = "winter_CLASS+.csv"
 
 # Load Winter CLASS+ CSV
 @st.cache_data
