@@ -430,7 +430,7 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         }
         grouped_data = grouped_data.rename(columns=rename_columns)
 
-        # Convert numeric columns to numeric and coerce errors to NaN
+        # Convert all numeric columns to numeric format and coerce errors to NaN
         numeric_columns = ['Velo', 'iVB', 'HB', 'Spin', 'RelH', 'RelS', 'Ext', 'VAA']
         for col in numeric_columns:
             grouped_data[col] = pd.to_numeric(grouped_data[col], errors='coerce')
@@ -513,6 +513,7 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         st.error(f"Key error encountered: {ke}. Please check the input data and column names.")
     except Exception as e:
         st.error(f"An error occurred while generating the pitch traits table: {e}")
+
 
 
 
