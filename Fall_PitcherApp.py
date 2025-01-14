@@ -220,17 +220,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
             # Filter only swinging strikes for scatter plot
             swing_strikes_data = pitch_type_data[pitch_type_data['PitchCall'] == 'StrikeSwinging']
             
-            # Scatter plot for swinging strikes only
-            ax.scatter(
-                swing_strikes_data['PlateLocSide'], 
-                swing_strikes_data['PlateLocHeight'], 
-                color='black',  # Color for the dots
-                edgecolor='white',  # Add a white border to make dots stand out
-                s=300,  # Size of the dots
-                alpha=0.7  # Transparency to allow overlap
-            )
-            
-            # Plot heatmap based on map type
+            # Plot heatmap first
             if map_type == 'Frequency':
                 heatmap_data = pitch_type_data
             elif map_type == 'Whiff':
@@ -250,7 +240,18 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
                     ax=ax,
                     bw_adjust=bw_adjust_value
                 )
-
+            
+            # Scatter plot for swinging strikes only (on top of the heatmap)
+            ax.scatter(
+                swing_strikes_data['PlateLocSide'], 
+                swing_strikes_data['PlateLocHeight'], 
+                color='black',  # Color for the dots
+                edgecolor='white',  # Add a white border to make dots stand out
+                s=300,  # Size of the dots
+                alpha=0.7,  # Transparency to allow overlap
+                zorder=3  # Ensure it plots on top of the heatmap
+            )
+            
             # Add strike zone as a rectangle with black edgecolor
             strike_zone_width = 1.66166  # feet changed for widest raw strike (formerly 17/12)
             strike_zone_params = {
@@ -265,7 +266,8 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
                 strike_zone_params['height'],
                 edgecolor='black',  # Black edge color for the strike zone
                 facecolor='none',
-                linewidth=2
+                linewidth=2,
+                zorder=4  # Keep this on top of both heatmap and scatter points
             )
             ax.add_patch(strike_zone)
             
@@ -301,7 +303,6 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
         st.pyplot(fig)
     except Exception as e:
         st.error(f"An error occurred while generating {map_type} heatmaps: {e}")
-
 
 
 
