@@ -260,7 +260,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
                         row['PlateLocHeight'], 
                         color=color, 
                         edgecolor='black',  # Black border for visibility
-                        s=450,  # Size of the dot
+                        s=550,  # Size of the dot
                         alpha=0.8,  # Slight transparency
                         zorder=3  # Ensure scatter points are on top
                     )
