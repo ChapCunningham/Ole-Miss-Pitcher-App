@@ -32,7 +32,7 @@ test_df = test_df[test_df['PitcherTeam'] == 'OLE_REB']
 
 # File paths for the CLASS+ and OTHER Rolling Stats CSVs
 fall_rolling_path = 'fall_CLASS+_by_date.csv'
-winter_rolling_path = 'winter_CLASS+_by_date.csv'
+winter_rolling_path = 'winter_CLASS+_by_date (1).csv'
 
 # Load the new datasets
 fall_rolling_df = load_data(fall_rolling_path)
