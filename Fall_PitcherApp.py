@@ -862,7 +862,7 @@ def generate_rolling_line_graphs(
             "FS": "Splitter",
             "CH": "ChangeUp",
         }
-        filtered_data['TaggedPitchType'] = filtered_data['TaggedPitchType'].map(pitch_type_mapping)
+        filtered_data['PitchType'] = filtered_data['PitchType'].map(pitch_type_mapping)
 
         # Ensure numeric conversion for the selected metrics
         numeric_columns = {
@@ -879,13 +879,13 @@ def generate_rolling_line_graphs(
 
         # Group data by date and pitch type
         grouped_data = (
-            filtered_data.groupby(['Date', 'TaggedPitchType'])
+            filtered_data.groupby(['Date', 'PitchType'])
             .agg({col: 'mean' for col in numeric_columns.keys()})
             .reset_index()
         )
 
         # Get unique pitch types
-        unique_pitch_types = grouped_data['TaggedPitchType'].unique()
+        unique_pitch_types = grouped_data['PitchType'].unique()
 
         # Plot rolling line graphs
         st.subheader("Rolling Averages by Pitch Type")
@@ -897,7 +897,7 @@ def generate_rolling_line_graphs(
             plt.ylabel(metric_label, fontsize=14)
 
             for pitch_type in unique_pitch_types:
-                pitch_data = grouped_data[grouped_data['TaggedPitchType'] == pitch_type]
+                pitch_data = grouped_data[grouped_data['PitchType'] == pitch_type]
                 plt.plot(
                     pitch_data['Date'],
                     pitch_data[metric],
