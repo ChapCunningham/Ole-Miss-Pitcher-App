@@ -461,13 +461,15 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         # Sort by 'Count' (most frequently thrown pitches first)
         grouped_data = grouped_data.sort_values(by='Count', ascending=False)
 
-        # Calculate "All" row
-        total_count = grouped_data["Count"].sum()
-
-        # Ensure numeric columns for weighted average calculation
+        # Ensure numeric conversion for all numeric columns
         numeric_columns = ['Velo', 'iVB', 'HB', 'Spin', 'RelH', 'RelS', 'Ext', 'VAA']
         grouped_data[numeric_columns] = grouped_data[numeric_columns].apply(pd.to_numeric, errors='coerce')
 
+        # Round numeric columns to 1 decimal place
+        grouped_data[numeric_columns] = grouped_data[numeric_columns].apply(lambda x: x.round(1))
+
+        # Calculate "All" row
+        total_count = grouped_data["Count"].sum()
         weighted_averages = {
             column: np.average(
                 grouped_data[column].dropna(), weights=grouped_data["Count"].loc[grouped_data[column].notna()]
@@ -501,9 +503,6 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         grouped_data = pd.concat([grouped_data, all_row_df], ignore_index=True)
 
         # Format the data before displaying
-        for col in numeric_columns + ['CLASS+']:
-            grouped_data[col] = grouped_data[col].apply(lambda x: round(x, 1) if pd.notna(x) and isinstance(x, (int, float)) else 'N/A')
-
         formatted_data = format_dataframe(grouped_data)
 
         # Display the results in Streamlit
