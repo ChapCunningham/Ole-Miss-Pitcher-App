@@ -833,7 +833,7 @@ def generate_rolling_line_graphs(
 ):
     try:
         # Filter data based on the provided parameters
-        filtered_data = rolling_df[rolling_df['Pitcher'] == pitcher_name]
+        filtered_data = rolling_df[rolling_df['playerFullName'] == pitcher_name]
 
         if filtered_data.empty:
             st.write("No data available for the selected pitcher.")
