@@ -187,7 +187,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
             return
 
         # Remove rows where PlateLocSide or PlateLocHeight is NaN, for plotting purposes only
-        plot_data = pitcher_data.dropna(subset=['PlateLocSide', 'PlateLocHeight'])
+        plot_data = pitcher_data.dropna(subset=['PlateLocSide', 'PlateLocHeight', 'ExitSpeed'] if map_type == 'Exit Velocity' else ['PlateLocSide', 'PlateLocHeight'])
 
         if plot_data.empty:
             st.write("No data available to plot after filtering.")
@@ -226,12 +226,45 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
                 heatmap_data = pitch_type_data[pitch_type_data['PitchCall'] == 'StrikeSwinging']
                 scatter_data = heatmap_data
             elif map_type == 'Exit Velocity':
-                # Use all pitches for Exit Velocity but map ExitSpeed
+                # Use ExitSpeed for weighting heatmap and plot scatter points based on ExitSpeed values
                 heatmap_data = pitch_type_data
                 scatter_data = pitch_type_data  # Use all pitches for scatter points
 
-            # Plot the scatter points on top of the heatmap
-            if not scatter_data.empty:
+                # Add ExitSpeed-weighted heatmap
+                if len(heatmap_data) >= 5:
+                    sns.kdeplot(
+                        x=heatmap_data['PlateLocSide'], 
+                        y=heatmap_data['PlateLocHeight'], 
+                        weights=heatmap_data['ExitSpeed'],  # Weight by ExitSpeed
+                        fill=True, 
+                        cmap='coolwarm', 
+                        levels=6, 
+                        ax=ax,
+                        bw_adjust=0.8,  # Adjust bandwidth for smoother plots
+                        zorder=1  # Heatmap should be underneath scatter points
+                    )
+
+                # Plot scatter points with color-coded ExitSpeed
+                for _, row in scatter_data.iterrows():
+                    if row['ExitSpeed'] >= 95:
+                        color = 'red'
+                    elif 90 < row['ExitSpeed'] < 95:
+                        color = 'yellow'
+                    else:
+                        color = 'blue'
+
+                    ax.scatter(
+                        row['PlateLocSide'], 
+                        row['PlateLocHeight'], 
+                        color=color, 
+                        edgecolor='black',  # Black border for visibility
+                        s=150,  # Size of the dot
+                        alpha=0.8,  # Slight transparency
+                        zorder=3  # Ensure scatter points are on top
+                    )
+
+            # Plot scatter points for other map types
+            if map_type != 'Exit Velocity' and not scatter_data.empty:
                 ax.scatter(
                     scatter_data['PlateLocSide'], 
                     scatter_data['PlateLocHeight'], 
@@ -240,20 +273,6 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
                     s=300,  # Size of the dots
                     alpha=0.7,  # Transparency to allow overlap
                     zorder=3  # Ensure scatter points are on top
-                )
-
-            # Check if enough data points exist for a heatmap
-            if len(heatmap_data) >= 5:
-                bw_adjust_value = 0.5 if len(heatmap_data) > 50 else 1  # Adjust bandwidth for small datasets
-                sns.kdeplot(
-                    x=heatmap_data['PlateLocSide'], 
-                    y=heatmap_data['PlateLocHeight'], 
-                    fill=True, 
-                    cmap='Spectral_r' if map_type == 'Frequency' else 'coolwarm', 
-                    levels=6, 
-                    ax=ax,
-                    bw_adjust=bw_adjust_value,
-                    zorder=2  # Heatmap should be underneath scatter points
                 )
 
             # Add strike zone as a rectangle with black edgecolor
