@@ -30,6 +30,19 @@ all_data_df = pd.concat([fall_df, winter_df])
 test_df = fall_df
 test_df = test_df[test_df['PitcherTeam'] == 'OLE_REB']
 
+# File paths for the CLASS+ and OTHER Rolling Stats CSVs
+fall_rolling_path = 'fall_CLASS+_by_date.csv'
+winter_rolling_path = 'winter_CLASS+_by_date.csv'
+
+# Load the new datasets
+fall_rolling_df = load_data(fall_rolling_path)
+winter_rolling_df = load_data(winter_rolling_path)
+
+# Add Season column to distinguish the datasets
+fall_rolling_df['Season'] = 'Fall'
+winter_rolling_df['Season'] = 'Winter'
+
+
 
 # Ensure numeric conversion for the columns where aggregation will be done
 numeric_columns = ['RelSpeed', 'SpinRate', 'Tilt', 'RelHeight', 'RelSide', 
@@ -118,6 +131,15 @@ elif date_filter_option == "Date Range":
         "Select Date Range",
         value=[datetime.today(), datetime.today()]
     )
+
+
+# Rolling dataset selection
+if dataset_selection == 'Fall':
+    rolling_df = fall_rolling_df
+elif dataset_selection == 'Winter':
+    rolling_df = winter_rolling_df
+else:  # "All" or Date Range
+    rolling_df = pd.concat([fall_rolling_df, winter_rolling_df])
 
 # Function to filter data based on the dropdown selections and date filters
 def filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
@@ -806,6 +828,95 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
 
 
 
+def generate_rolling_line_graphs(
+    rolling_df, pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date
+):
+    try:
+        # Filter data based on the provided parameters
+        filtered_data = rolling_df[rolling_df['Pitcher'] == pitcher_name]
+
+        if filtered_data.empty:
+            st.write("No data available for the selected pitcher.")
+            return
+
+        # Apply date filtering
+        if date_filter_option == "Single Date" and selected_date:
+            filtered_data = filtered_data[filtered_data['Date'] == pd.to_datetime(selected_date)]
+        elif date_filter_option == "Date Range" and start_date and end_date:
+            filtered_data = filtered_data[
+                (filtered_data['Date'] >= pd.to_datetime(start_date)) &
+                (filtered_data['Date'] <= pd.to_datetime(end_date))
+            ]
+
+        if filtered_data.empty:
+            st.write("No data available for the selected date range.")
+            return
+
+        # Rename pitch types for clarity
+        pitch_type_mapping = {
+            "4S": "Fastball",
+            "SI": "Sinker",
+            "FC": "Cutter",
+            "SL": "Slider",
+            "CU": "Curveball",
+            "FS": "Splitter",
+            "CH": "ChangeUp",
+        }
+        filtered_data['TaggedPitchType'] = filtered_data['TaggedPitchType'].map(pitch_type_mapping)
+
+        # Ensure numeric conversion for the selected metrics
+        numeric_columns = {
+            'Vel': 'Velocity',
+            'IndVertBrk': 'iVB',
+            'HorzBrk': 'HB',
+            'Spin': 'Spin',
+            'RelH (ft)': 'RelH',
+            'Extension': 'Extension',
+            'CLASS+': 'CLASS+',
+        }
+        for col in numeric_columns.keys():
+            filtered_data[col] = pd.to_numeric(filtered_data[col], errors='coerce')
+
+        # Group data by date and pitch type
+        grouped_data = (
+            filtered_data.groupby(['Date', 'TaggedPitchType'])
+            .agg({col: 'mean' for col in numeric_columns.keys()})
+            .reset_index()
+        )
+
+        # Get unique pitch types
+        unique_pitch_types = grouped_data['TaggedPitchType'].unique()
+
+        # Plot rolling line graphs
+        st.subheader("Rolling Averages by Pitch Type")
+
+        for metric, metric_label in numeric_columns.items():
+            plt.figure(figsize=(12, 6))
+            plt.title(f"{metric_label} Rolling Averages by Pitch Type", fontsize=18)
+            plt.xlabel("Date", fontsize=14)
+            plt.ylabel(metric_label, fontsize=14)
+
+            for pitch_type in unique_pitch_types:
+                pitch_data = grouped_data[grouped_data['TaggedPitchType'] == pitch_type]
+                plt.plot(
+                    pitch_data['Date'],
+                    pitch_data[metric],
+                    label=pitch_type,
+                    color=color_dict.get(pitch_type, 'black'),  # Use consistent color coding
+                    marker='o',
+                )
+
+            plt.legend(title="Pitch Type", fontsize=10, loc='upper left')
+            plt.xticks(rotation=45)
+            plt.tight_layout()
+            st.pyplot(plt)
+
+    except Exception as e:
+        st.error(f"An error occurred while generating rolling line graphs: {e}")
+
+
+
+
 
 
 
@@ -870,3 +981,17 @@ plot_pitch_movement(
     start_date, 
     end_date
 )
+
+# Generate rolling line graphs based on selected metrics and pitch types
+generate_rolling_line_graphs(
+    rolling_df,
+    pitcher_name,
+    batter_side,
+    strikes,
+    balls,
+    date_filter_option,
+    selected_date,
+    start_date,
+    end_date
+)
+
