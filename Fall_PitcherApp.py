@@ -217,23 +217,14 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
         for i, (ax, pitch_type) in enumerate(zip(axes, unique_pitch_types)):
             pitch_type_data = plot_data[plot_data['TaggedPitchType'] == pitch_type]
             
-            # Handle different heatmap types
             if map_type == 'Frequency':
+                # All pitches are used for frequency maps
                 heatmap_data = pitch_type_data
             elif map_type == 'Whiff':
-                # Only use pitches with swing attempts (StrikeSwinging, FoulBall, InPlay)
-                whiff_data = pitch_type_data[pitch_type_data['PitchCall'] == 'StrikeSwinging']
-                swing_data = pitch_type_data[pitch_type_data['PitchCall'].isin(['StrikeSwinging', 'FoulBallFieldable', 'InPlay'])]
-                
-                if len(swing_data) < 5:  # Ensure enough data for meaningful heatmap
-                    st.write(f"Not enough swing data for {pitch_type}. Skipping Whiff Heatmap.")
-                    continue
-                
-                # Calculate Whiff Rate (whiffs / swings) and add to the data
-                pitch_type_data['WhiffRate'] = whiff_data.groupby(['PlateLocSide', 'PlateLocHeight']).size() / swing_data.groupby(['PlateLocSide', 'PlateLocHeight']).size()
-                heatmap_data = pitch_type_data.dropna(subset=['WhiffRate'])
-                
+                # Only use pitches with 'StrikeSwinging' for heatmap
+                heatmap_data = pitch_type_data[pitch_type_data['PitchCall'] == 'StrikeSwinging']
             elif map_type == 'Exit Velocity':
+                # Use all pitches for Exit Velocity but map ExitSpeed
                 heatmap_data = pitch_type_data
 
             # Scatter plot for all pitches
@@ -246,17 +237,17 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
                 alpha=0.7  # Transparency to allow overlap
             )
             
-            # Plot the heatmap
-            if not heatmap_data.empty:
+            # Check if enough data points exist for a heatmap
+            if len(heatmap_data) >= 5:
                 bw_adjust_value = 0.5 if len(heatmap_data) > 50 else 1  # Adjust bandwidth for small datasets
                 sns.kdeplot(
                     x=heatmap_data['PlateLocSide'], 
                     y=heatmap_data['PlateLocHeight'], 
                     fill=True, 
-                    cmap='coolwarm' if map_type == 'Whiff' else 'Spectral_r', 
+                    cmap='Spectral_r' if map_type == 'Frequency' else 'coolwarm', 
                     levels=6, 
                     ax=ax,
-                    bw_adjust=bw_adjust_value,
+                    bw_adjust=bw_adjust_value
                 )
 
             # Add strike zone as a rectangle with black edgecolor
@@ -308,7 +299,8 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
         # Show the updated figure
         st.pyplot(fig)
     except Exception as e:
-        st.error(f"An error occurred while generating {map_type} heatmaps: {e}")
+        st.write(f"Error generating {map_type} heatmaps: {e}")
+
 
 
 
