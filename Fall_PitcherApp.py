@@ -485,14 +485,14 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         all_row = {
             'Pitch': 'All',
             'Count': total_count,
-            'Velo': round(weighted_averages['Velo'], 2) if pd.notna(weighted_averages['Velo']) else 'N/A',
-            'iVB': round(weighted_averages['iVB'], 2) if pd.notna(weighted_averages['iVB']) else 'N/A',
-            'HB': round(weighted_averages['HB'], 2) if pd.notna(weighted_averages['HB']) else 'N/A',
-            'Spin': round(weighted_averages['Spin'], 2) if pd.notna(weighted_averages['Spin']) else 'N/A',
-            'RelH': round(weighted_averages['RelH'], 2) if pd.notna(weighted_averages['RelH']) else 'N/A',
-            'RelS': round(weighted_averages['RelS'], 2) if pd.notna(weighted_averages['RelS']) else 'N/A',
-            'Ext': round(weighted_averages['Ext'], 2) if pd.notna(weighted_averages['Ext']) else 'N/A',
-            'VAA': round(weighted_averages['VAA'], 2) if pd.notna(weighted_averages['VAA']) else 'N/A',
+            'Velo': round(weighted_averages['Velo'], 1) if pd.notna(weighted_averages['Velo']) else 'N/A',
+            'iVB': round(weighted_averages['iVB'], 1) if pd.notna(weighted_averages['iVB']) else 'N/A',
+            'HB': round(weighted_averages['HB'], 1) if pd.notna(weighted_averages['HB']) else 'N/A',
+            'Spin': round(weighted_averages['Spin'], 1) if pd.notna(weighted_averages['Spin']) else 'N/A',
+            'RelH': round(weighted_averages['RelH'], 1) if pd.notna(weighted_averages['RelH']) else 'N/A',
+            'RelS': round(weighted_averages['RelS'], 1) if pd.notna(weighted_averages['RelS']) else 'N/A',
+            'Ext': round(weighted_averages['Ext'], 1) if pd.notna(weighted_averages['Ext']) else 'N/A',
+            'VAA': round(weighted_averages['VAA'], 1) if pd.notna(weighted_averages['VAA']) else 'N/A',
             'CLASS+': round(class_plus_weighted_avg, 1) if pd.notna(class_plus_weighted_avg) else 'N/A'
         }
 
@@ -501,6 +501,9 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         grouped_data = pd.concat([grouped_data, all_row_df], ignore_index=True)
 
         # Format the data before displaying
+        for col in numeric_columns + ['CLASS+']:
+            grouped_data[col] = grouped_data[col].apply(lambda x: round(x, 1) if pd.notna(x) and isinstance(x, (int, float)) else 'N/A')
+
         formatted_data = format_dataframe(grouped_data)
 
         # Display the results in Streamlit
@@ -510,6 +513,7 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         st.error(f"Key error encountered: {ke}. Please check the input data and column names.")
     except Exception as e:
         st.error(f"An error occurred while generating the pitch traits table: {e}")
+
 
 
 
