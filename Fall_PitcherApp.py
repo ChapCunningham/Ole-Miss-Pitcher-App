@@ -430,6 +430,14 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         }
         grouped_data = grouped_data.rename(columns=rename_columns)
 
+        # Convert numeric columns to numeric and coerce errors to NaN
+        numeric_columns = ['Velo', 'iVB', 'HB', 'Spin', 'RelH', 'RelS', 'Ext', 'VAA']
+        for col in numeric_columns:
+            grouped_data[col] = pd.to_numeric(grouped_data[col], errors='coerce')
+
+        # Round numeric columns to 1 decimal place
+        grouped_data[numeric_columns] = grouped_data[numeric_columns].apply(lambda x: x.round(1))
+
         # Select CLASS+ data based on dataset selection
         if dataset_selection == 'Fall':
             filtered_class_plus = class_plus_df[class_plus_df["playerFullName"] == pitcher_name]
@@ -460,13 +468,6 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
 
         # Sort by 'Count' (most frequently thrown pitches first)
         grouped_data = grouped_data.sort_values(by='Count', ascending=False)
-
-        # Ensure numeric conversion for all numeric columns
-        numeric_columns = ['Velo', 'iVB', 'HB', 'Spin', 'RelH', 'RelS', 'Ext', 'VAA']
-        grouped_data[numeric_columns] = grouped_data[numeric_columns].apply(pd.to_numeric, errors='coerce')
-
-        # Round numeric columns to 1 decimal place
-        grouped_data[numeric_columns] = grouped_data[numeric_columns].apply(lambda x: x.round(1))
 
         # Calculate "All" row
         total_count = grouped_data["Count"].sum()
