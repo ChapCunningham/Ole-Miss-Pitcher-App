@@ -343,7 +343,7 @@ def format_dataframe(df):
     return df
 
 # Load CLASS+ CSV into a DataFrame
-class_plus_file_path = "CLASS+ Trained on D1 Data - OM CLASS+ Ind Pitch.csv"  # Replace with the actual path
+class_plus_file_path = "player_pitch_summary_with_count (10).csv"  # Replace with the actual path
 
 @st.cache_data
 def load_class_plus_data(file_path):
