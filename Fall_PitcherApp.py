@@ -898,11 +898,23 @@ def generate_rolling_line_graphs(
         # Get unique pitch types
         unique_pitch_types = grouped_data['PitchType'].unique()
 
+        # Map colors using the color_dict
+        color_dict = {
+            'Fastball': 'blue',
+            'Sinker': 'gold',
+            'Slider': 'green',
+            'Curveball': 'red',
+            'Cutter': 'orange',
+            'ChangeUp': 'purple',
+            'Splitter': 'teal',
+            'Unknown': 'black',
+            'Other': 'black'
+        }
+
         # Plot rolling line graphs
         st.subheader("Interactive Rolling Averages by Pitch Type")
 
         for metric, metric_label in numeric_columns.items():
-            # Create a Plotly figure
             fig = px.line(
                 grouped_data,
                 x="Date",
@@ -910,10 +922,26 @@ def generate_rolling_line_graphs(
                 color="PitchType",
                 title=f"{metric_label} Rolling Averages by Pitch Type",
                 labels={"Date": "Date", metric: metric_label, "PitchType": "Pitch Type"},
+                color_discrete_map=color_dict,  # Match colors with color_dict
                 hover_data={"Date": "|%B %d, %Y", metric: ":.2f"},  # Format hover information
             )
 
-            # Customize the appearance
+            # Add scatter points for each date with data
+            for pitch_type in unique_pitch_types:
+                pitch_data = grouped_data[grouped_data['PitchType'] == pitch_type]
+                fig.add_scatter(
+                    x=pitch_data['Date'],
+                    y=pitch_data[metric],
+                    mode='markers',
+                    marker=dict(
+                        size=8,
+                        color=color_dict.get(pitch_type, 'black')  # Match marker color to line color
+                    ),
+                    name=f"{pitch_type} Dots",  # To differentiate scatter points in the legend
+                    showlegend=False  # Hide extra legends for scatter points
+                )
+
+            # Customize layout
             fig.update_layout(
                 xaxis_title="Date",
                 yaxis_title=metric_label,
@@ -927,6 +955,7 @@ def generate_rolling_line_graphs(
 
     except Exception as e:
         st.error(f"An error occurred while generating rolling line graphs: {e}")
+
 
 
 
