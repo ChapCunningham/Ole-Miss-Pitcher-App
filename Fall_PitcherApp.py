@@ -837,6 +837,8 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
 
 
 
+import plotly.express as px
+
 def generate_rolling_line_graphs(
     rolling_df, pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date
 ):
@@ -897,31 +899,35 @@ def generate_rolling_line_graphs(
         unique_pitch_types = grouped_data['PitchType'].unique()
 
         # Plot rolling line graphs
-        st.subheader("Rolling Averages by Pitch Type")
+        st.subheader("Interactive Rolling Averages by Pitch Type")
 
         for metric, metric_label in numeric_columns.items():
-            plt.figure(figsize=(12, 6))
-            plt.title(f"{metric_label} Rolling Averages by Pitch Type", fontsize=18)
-            plt.xlabel("Date", fontsize=14)
-            plt.ylabel(metric_label, fontsize=14)
+            # Create a Plotly figure
+            fig = px.line(
+                grouped_data,
+                x="Date",
+                y=metric,
+                color="PitchType",
+                title=f"{metric_label} Rolling Averages by Pitch Type",
+                labels={"Date": "Date", metric: metric_label, "PitchType": "Pitch Type"},
+                hover_data={"Date": "|%B %d, %Y", metric: ":.2f"},  # Format hover information
+            )
 
-            for pitch_type in unique_pitch_types:
-                pitch_data = grouped_data[grouped_data['PitchType'] == pitch_type]
-                plt.plot(
-                    pitch_data['Date'],
-                    pitch_data[metric],
-                    label=pitch_type,
-                    color=color_dict.get(pitch_type, 'black'),  # Use consistent color coding
-                    marker='o',
-                )
+            # Customize the appearance
+            fig.update_layout(
+                xaxis_title="Date",
+                yaxis_title=metric_label,
+                legend_title="Pitch Type",
+                template="plotly_white",
+                hovermode="x unified",  # Show all hover info on the same vertical line
+            )
 
-            plt.legend(title="Pitch Type", fontsize=10, loc='upper left')
-            plt.xticks(rotation=45)
-            plt.tight_layout()
-            st.pyplot(plt)
+            # Display the plot in Streamlit
+            st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
         st.error(f"An error occurred while generating rolling line graphs: {e}")
+
 
 
 
