@@ -875,6 +875,11 @@ def generate_rolling_line_graphs(
         }
         filtered_data['PitchType'] = filtered_data['PitchType'].map(pitch_type_mapping)
 
+        # Calculate Whiff%: (StrikeSwinging / TotalSwings) * 100
+        filtered_data['Whiff%'] = (
+            filtered_data['StrikeSwinging'] / filtered_data[['StrikeSwinging', 'FoulBallFieldable', 'FoulBallNotFieldable', 'InPlay']].sum(axis=1)
+        ) * 100
+
         # Ensure numeric conversion for the selected metrics
         numeric_columns = {
             'Vel': 'Velocity',
@@ -884,6 +889,7 @@ def generate_rolling_line_graphs(
             'RelH (ft)': 'RelH',
             'Extension': 'Extension',
             'CLASS+': 'CLASS+',
+            'Whiff%': 'Whiff%',  # Add Whiff% to the metrics
         }
         for col in numeric_columns.keys():
             filtered_data[col] = pd.to_numeric(filtered_data[col], errors='coerce')
@@ -898,60 +904,37 @@ def generate_rolling_line_graphs(
         # Get unique pitch types
         unique_pitch_types = grouped_data['PitchType'].unique()
 
-        # Map colors using the color_dict
-        color_dict = {
-            'Fastball': 'blue',
-            'Sinker': 'gold',
-            'Slider': 'green',
-            'Curveball': 'red',
-            'Cutter': 'orange',
-            'ChangeUp': 'purple',
-            'Splitter': 'teal',
-            'Unknown': 'black',
-            'Other': 'black'
-        }
-
         # Plot rolling line graphs
-        st.subheader("Interactive Rolling Averages by Pitch Type")
+        st.subheader("Rolling Averages by Pitch Type")
 
         for metric, metric_label in numeric_columns.items():
-            fig = px.line(
-                grouped_data,
-                x="Date",
-                y=metric,
-                color="PitchType",
-                title=f"{metric_label} Rolling Averages by Pitch Type",
-                labels={"Date": "Date", metric: metric_label, "PitchType": "Pitch Type"},
-                color_discrete_map=color_dict,  # Match colors with color_dict
-                hover_data={"Date": "|%B %d, %Y", metric: ":.2f"},  # Format hover information
-            )
+            fig = go.Figure()
 
-            # Add scatter points for each date with data
             for pitch_type in unique_pitch_types:
                 pitch_data = grouped_data[grouped_data['PitchType'] == pitch_type]
-                fig.add_scatter(
-                    x=pitch_data['Date'],
-                    y=pitch_data[metric],
-                    mode='markers',
-                    marker=dict(
-                        size=8,
-                        color=color_dict.get(pitch_type, 'black')  # Match marker color to line color
-                    ),
-                    name=f"{pitch_type} Dots",  # To differentiate scatter points in the legend
-                    showlegend=False  # Hide extra legends for scatter points
+
+                fig.add_trace(
+                    go.Scatter(
+                        x=pitch_data['Date'],
+                        y=pitch_data[metric],
+                        mode='lines+markers',  # Add dots on the line
+                        name=pitch_type,
+                        line=dict(color=color_dict.get(pitch_type, 'black')),  # Match colors from color_dict
+                        marker=dict(size=8)  # Size of the dots
+                    )
                 )
 
-            # Customize layout
             fig.update_layout(
+                title=f"{metric_label} Rolling Averages by Pitch Type",
                 xaxis_title="Date",
                 yaxis_title=metric_label,
                 legend_title="Pitch Type",
+                xaxis=dict(showgrid=True),
+                yaxis=dict(showgrid=True),
                 template="plotly_white",
-                hovermode="x unified",  # Show all hover info on the same vertical line
             )
 
-            # Display the plot in Streamlit
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig)
 
     except Exception as e:
         st.error(f"An error occurred while generating rolling line graphs: {e}")
