@@ -842,36 +842,42 @@ import plotly.express as px
 
 
 def generate_rolling_line_graphs(
-    rolling_df, test_df, pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date
+    rolling_df, pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date
 ):
     try:
-        # Filter data for the selected pitcher in the main dataset
-        filtered_main_data = filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date)
+        # Filter data based on the provided parameters
+        filtered_data = rolling_df[rolling_df['playerFullName'] == pitcher_name]
 
-        if filtered_main_data.empty:
-            st.write("No data available for the selected parameters.")
+        if filtered_data.empty:
+            st.write("No data available for the selected pitcher.")
             return
 
-        # Calculate Whiff% from the main dataset
-        def calculate_whiff_percentage(group):
-            total_swings = group[
-                group['PitchCall'].isin(['StrikeSwinging', 'FoulBallFieldable', 'FoulBallNotFieldable', 'InPlay'])
-            ].shape[0]
-            swinging_strikes = group[group['PitchCall'] == 'StrikeSwinging'].shape[0]
-            return (swinging_strikes / total_swings) * 100 if total_swings > 0 else np.nan
+        # Apply date filtering
+        if date_filter_option == "Single Date" and selected_date:
+            filtered_data = filtered_data[filtered_data['Date'] == pd.to_datetime(selected_date)]
+        elif date_filter_option == "Date Range" and start_date and end_date:
+            filtered_data = filtered_data[
+                (filtered_data['Date'] >= pd.to_datetime(start_date)) &
+                (filtered_data['Date'] <= pd.to_datetime(end_date))
+            ]
 
-        whiff_data = filtered_main_data.groupby(['Date', 'TaggedPitchType']).apply(calculate_whiff_percentage).reset_index(name='Whiff%')
+        if filtered_data.empty:
+            st.write("No data available for the selected date range.")
+            return
 
-        # Merge Whiff% back into rolling_df
-        rolling_df = pd.merge(
-            rolling_df,
-            whiff_data,
-            left_on=['Date', 'PitchType'],  # Adjust this if column names differ
-            right_on=['Date', 'TaggedPitchType'],  # Adjust this if column names differ
-            how='left'
-        )
+        # Rename pitch types for clarity
+        pitch_type_mapping = {
+            "4S": "Fastball",
+            "SI": "Sinker",
+            "FC": "Cutter",
+            "SL": "Slider",
+            "CU": "Curveball",
+            "FS": "Splitter",
+            "CH": "ChangeUp",
+        }
+        filtered_data['PitchType'] = filtered_data['PitchType'].map(pitch_type_mapping)
 
-        # Ensure numeric conversion for metrics
+        # Ensure numeric conversion for the selected metrics
         numeric_columns = {
             'Vel': 'Velocity',
             'IndVertBrk': 'iVB',
@@ -880,14 +886,13 @@ def generate_rolling_line_graphs(
             'RelH (ft)': 'RelH',
             'Extension': 'Extension',
             'CLASS+': 'CLASS+',
-            'Whiff%': 'Whiff%',  # Add Whiff% to metrics
         }
         for col in numeric_columns.keys():
-            rolling_df[col] = pd.to_numeric(rolling_df[col], errors='coerce')
+            filtered_data[col] = pd.to_numeric(filtered_data[col], errors='coerce')
 
         # Group data by date and pitch type
         grouped_data = (
-            rolling_df.groupby(['Date', 'PitchType'])
+            filtered_data.groupby(['Date', 'PitchType'])
             .agg({col: 'mean' for col in numeric_columns.keys()})
             .reset_index()
         )
@@ -895,40 +900,64 @@ def generate_rolling_line_graphs(
         # Get unique pitch types
         unique_pitch_types = grouped_data['PitchType'].unique()
 
+        # Map colors using the color_dict
+        color_dict = {
+            'Fastball': 'blue',
+            'Sinker': 'gold',
+            'Slider': 'green',
+            'Curveball': 'red',
+            'Cutter': 'orange',
+            'ChangeUp': 'purple',
+            'Splitter': 'teal',
+            'Unknown': 'black',
+            'Other': 'black'
+        }
+
         # Plot rolling line graphs
-        st.subheader("Rolling Averages by Pitch Type")
+        st.subheader("Interactive Rolling Averages by Pitch Type")
 
         for metric, metric_label in numeric_columns.items():
-            fig = go.Figure()
+            fig = px.line(
+                grouped_data,
+                x="Date",
+                y=metric,
+                color="PitchType",
+                title=f"{metric_label} Rolling Averages by Pitch Type",
+                labels={"Date": "Date", metric: metric_label, "PitchType": "Pitch Type"},
+                color_discrete_map=color_dict,  # Match colors with color_dict
+                hover_data={"Date": "|%B %d, %Y", metric: ":.2f"},  # Format hover information
+            )
 
+            # Add scatter points for each date with data
             for pitch_type in unique_pitch_types:
                 pitch_data = grouped_data[grouped_data['PitchType'] == pitch_type]
-
-                fig.add_trace(
-                    go.Scatter(
-                        x=pitch_data['Date'],
-                        y=pitch_data[metric],
-                        mode='lines+markers',  # Add dots on the line
-                        name=pitch_type,
-                        line=dict(color=color_dict.get(pitch_type, 'black')),  # Match colors from color_dict
-                        marker=dict(size=8)  # Size of the dots
-                    )
+                fig.add_scatter(
+                    x=pitch_data['Date'],
+                    y=pitch_data[metric],
+                    mode='markers',
+                    marker=dict(
+                        size=8,
+                        color=color_dict.get(pitch_type, 'black')  # Match marker color to line color
+                    ),
+                    name=f"{pitch_type} Dots",  # To differentiate scatter points in the legend
+                    showlegend=False  # Hide extra legends for scatter points
                 )
 
+            # Customize layout
             fig.update_layout(
-                title=f"{metric_label} Rolling Averages by Pitch Type",
                 xaxis_title="Date",
                 yaxis_title=metric_label,
                 legend_title="Pitch Type",
-                xaxis=dict(showgrid=True),
-                yaxis=dict(showgrid=True),
                 template="plotly_white",
+                hovermode="x unified",  # Show all hover info on the same vertical line
             )
 
-            st.plotly_chart(fig)
+            # Display the plot in Streamlit
+            st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
         st.error(f"An error occurred while generating rolling line graphs: {e}")
+
 
 
 
