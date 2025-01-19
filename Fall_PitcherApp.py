@@ -839,6 +839,8 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
 
 import plotly.express as px
 
+
+
 def generate_rolling_line_graphs(
     rolling_df, pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date
 ):
@@ -875,10 +877,15 @@ def generate_rolling_line_graphs(
         }
         filtered_data['PitchType'] = filtered_data['PitchType'].map(pitch_type_mapping)
 
-        # Calculate Whiff%: (StrikeSwinging / TotalSwings) * 100
-        filtered_data['Whiff%'] = (
-            filtered_data['StrikeSwinging'] / filtered_data[['StrikeSwinging', 'FoulBallFieldable', 'FoulBallNotFieldable', 'InPlay']].sum(axis=1)
-        ) * 100
+        # Calculate Whiff%: (Swinging Strikes / Total Swings) * 100
+        def calculate_whiff_percentage(group):
+            total_swings = group[
+                group['PitchCall'].isin(['StrikeSwinging', 'FoulBallFieldable', 'FoulBallNotFieldable', 'InPlay'])
+            ].shape[0]
+            swinging_strikes = group[group['PitchCall'] == 'StrikeSwinging'].shape[0]
+            return (swinging_strikes / total_swings) * 100 if total_swings > 0 else np.nan
+
+        filtered_data['Whiff%'] = filtered_data.groupby(['Date', 'PitchType']).apply(calculate_whiff_percentage).reset_index(drop=True)
 
         # Ensure numeric conversion for the selected metrics
         numeric_columns = {
@@ -938,9 +945,6 @@ def generate_rolling_line_graphs(
 
     except Exception as e:
         st.error(f"An error occurred while generating rolling line graphs: {e}")
-
-
-
 
 
 
