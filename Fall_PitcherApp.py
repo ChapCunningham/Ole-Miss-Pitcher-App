@@ -842,42 +842,17 @@ import plotly.express as px
 
 
 def generate_rolling_line_graphs(
-    rolling_df, pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date
+    rolling_df, test_df, pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date
 ):
     try:
-        # Filter data based on the provided parameters
-        filtered_data = rolling_df[rolling_df['playerFullName'] == pitcher_name]
+        # Filter data for the selected pitcher in the main dataset
+        filtered_main_data = filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date)
 
-        if filtered_data.empty:
-            st.write("No data available for the selected pitcher.")
+        if filtered_main_data.empty:
+            st.write("No data available for the selected parameters.")
             return
 
-        # Apply date filtering
-        if date_filter_option == "Single Date" and selected_date:
-            filtered_data = filtered_data[filtered_data['Date'] == pd.to_datetime(selected_date)]
-        elif date_filter_option == "Date Range" and start_date and end_date:
-            filtered_data = filtered_data[
-                (filtered_data['Date'] >= pd.to_datetime(start_date)) &
-                (filtered_data['Date'] <= pd.to_datetime(end_date))
-            ]
-
-        if filtered_data.empty:
-            st.write("No data available for the selected date range.")
-            return
-
-        # Rename pitch types for clarity
-        pitch_type_mapping = {
-            "4S": "Fastball",
-            "SI": "Sinker",
-            "FC": "Cutter",
-            "SL": "Slider",
-            "CU": "Curveball",
-            "FS": "Splitter",
-            "CH": "ChangeUp",
-        }
-        filtered_data['PitchType'] = filtered_data['PitchType'].map(pitch_type_mapping)
-
-        # Calculate Whiff%: (Swinging Strikes / Total Swings) * 100
+        # Calculate Whiff% from the main dataset
         def calculate_whiff_percentage(group):
             total_swings = group[
                 group['PitchCall'].isin(['StrikeSwinging', 'FoulBallFieldable', 'FoulBallNotFieldable', 'InPlay'])
@@ -885,9 +860,18 @@ def generate_rolling_line_graphs(
             swinging_strikes = group[group['PitchCall'] == 'StrikeSwinging'].shape[0]
             return (swinging_strikes / total_swings) * 100 if total_swings > 0 else np.nan
 
-        filtered_data['Whiff%'] = filtered_data.groupby(['Date', 'PitchType']).apply(calculate_whiff_percentage).reset_index(drop=True)
+        whiff_data = filtered_main_data.groupby(['Date', 'TaggedPitchType']).apply(calculate_whiff_percentage).reset_index(name='Whiff%')
 
-        # Ensure numeric conversion for the selected metrics
+        # Merge Whiff% back into rolling_df
+        rolling_df = pd.merge(
+            rolling_df,
+            whiff_data,
+            left_on=['Date', 'PitchType'],  # Adjust this if column names differ
+            right_on=['Date', 'TaggedPitchType'],  # Adjust this if column names differ
+            how='left'
+        )
+
+        # Ensure numeric conversion for metrics
         numeric_columns = {
             'Vel': 'Velocity',
             'IndVertBrk': 'iVB',
@@ -896,14 +880,14 @@ def generate_rolling_line_graphs(
             'RelH (ft)': 'RelH',
             'Extension': 'Extension',
             'CLASS+': 'CLASS+',
-            'Whiff%': 'Whiff%',  # Add Whiff% to the metrics
+            'Whiff%': 'Whiff%',  # Add Whiff% to metrics
         }
         for col in numeric_columns.keys():
-            filtered_data[col] = pd.to_numeric(filtered_data[col], errors='coerce')
+            rolling_df[col] = pd.to_numeric(rolling_df[col], errors='coerce')
 
         # Group data by date and pitch type
         grouped_data = (
-            filtered_data.groupby(['Date', 'PitchType'])
+            rolling_df.groupby(['Date', 'PitchType'])
             .agg({col: 'mean' for col in numeric_columns.keys()})
             .reset_index()
         )
@@ -945,6 +929,7 @@ def generate_rolling_line_graphs(
 
     except Exception as e:
         st.error(f"An error occurred while generating rolling line graphs: {e}")
+
 
 
 
