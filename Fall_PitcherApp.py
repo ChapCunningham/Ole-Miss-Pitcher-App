@@ -11,6 +11,13 @@ from datetime import datetime
 fall_file_path = 'FINAL FALL CSV 2024 - filtered_fall_trackman (1).csv'  # Fall dataset
 winter_file_path = 'WINTER_ALL_trackman.csv'  # Winter dataset
 
+# File path for Spring Preseason dataset
+spring_file_path = "Spring Intrasquads MASTER.csv"
+
+# Load Spring Preseason dataset
+
+
+
 @st.cache_data
 def load_data(file_path):
     return pd.read_csv(file_path, parse_dates=['Date'])  # Parse 'Date' column as datetime
@@ -18,13 +25,15 @@ def load_data(file_path):
 # Load Fall and Winter datasets
 fall_df = load_data(fall_file_path)
 winter_df = load_data(winter_file_path)
+spring_df = load_data(spring_file_path)
 
 # Add a column to distinguish datasets
 fall_df['Season'] = 'Fall'
 winter_df['Season'] = 'Winter'
+spring_df['Season'] = 'Spring Preseason'
 
 # Combine datasets for "All" option
-all_data_df = pd.concat([fall_df, winter_df])
+all_data_df = pd.concat([fall_df, winter_df, spring_df])
 
 # Default to "Fall" dataset initially
 test_df = fall_df
@@ -58,10 +67,10 @@ st.title("OMBSB Pitcher Reports")
 # Sidebar for filters
 st.sidebar.header("Filters")
 
-# Dropdown for dataset selection (Fall, Winter, or All)
+# Dropdown for dataset selection (Fall, Winter, Spring, or All)
 dataset_selection = st.sidebar.selectbox(
     "Select Dataset:",
-    options=['Fall', 'Winter', 'All']
+    options=['Fall', 'Winter', 'Spring Preseason', 'All']
 )
 
 # Apply dataset selection
@@ -69,8 +78,11 @@ if dataset_selection == 'Fall':
     test_df = fall_df
 elif dataset_selection == 'Winter':
     test_df = winter_df
+elif dataset_selection == 'Spring Preseason':
+    test_df = spring_df
 else:  # "All"
     test_df = all_data_df
+
 
 # Filter by team
 test_df = test_df[test_df['PitcherTeam'].isin(['OLE_REB', 'OLE_PRAC'])]
@@ -133,13 +145,23 @@ elif date_filter_option == "Date Range":
     )
 
 
-# Rolling dataset selection
+# File path for Spring Rolling CLASS+ dataset
+spring_rolling_path = "spring_CLASS+_by_date.csv"
+
+# Load Spring rolling CLASS+ dataset
+spring_rolling_df = load_data(spring_rolling_path)
+spring_rolling_df['Season'] = 'Spring Preseason'
+
+# Update the rolling dataset selection
 if dataset_selection == 'Fall':
     rolling_df = fall_rolling_df
 elif dataset_selection == 'Winter':
     rolling_df = winter_rolling_df
-else:  # "All" or Date Range
-    rolling_df = pd.concat([fall_rolling_df, winter_rolling_df])
+elif dataset_selection == 'Spring Preseason':
+    rolling_df = spring_rolling_df
+else:  # "All"
+    rolling_df = pd.concat([fall_rolling_df, winter_rolling_df, spring_rolling_df])
+
 
 # Function to filter data based on the dropdown selections and date filters
 def filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
@@ -389,11 +411,36 @@ def load_winter_class_plus_data(file_path):
 # Load the Winter CLASS+ dataset
 winter_class_plus_df = load_winter_class_plus_data(winter_class_plus_file_path)
 
+
+# File path for Spring CLASS+ dataset
+spring_class_plus_file_path = "spring_CLASS+.csv"
+
+# Load Spring CLASS+ CSV
+@st.cache_data
+def load_spring_class_plus_data(file_path):
+    df = pd.read_csv(file_path)
+    df['Season'] = 'Spring Preseason'  # Add season identifier
+    # Rename pitch types to match other datasets
+    df["PitchType"] = df["PitchType"].map({
+        "4S": "Fastball",
+        "SI": "Sinker",
+        "FC": "Cutter",
+        "SL": "Slider",
+        "CU": "Curveball",
+        "FS": "Splitter",
+        "CH": "ChangeUp"
+    })
+    return df
+
+# Load the Spring CLASS+ dataset
+spring_class_plus_df = load_spring_class_plus_data(spring_class_plus_file_path)
+
+
 # Add Season identifier to Fall CLASS+ dataset
 class_plus_df['Season'] = 'Fall'
 
 # Combine Fall and Winter CLASS+ datasets
-all_class_plus_df = pd.concat([class_plus_df, winter_class_plus_df])
+all_class_plus_df = pd.concat([class_plus_df, winter_class_plus_df, spring_class_plus_df])
 
 
 
@@ -443,12 +490,16 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         grouped_data[numeric_columns] = grouped_data[numeric_columns].apply(lambda x: x.round(1))
 
         # Select CLASS+ data based on dataset selection
+        # Select CLASS+ data based on dataset selection
         if dataset_selection == 'Fall':
             filtered_class_plus = class_plus_df[class_plus_df["playerFullName"] == pitcher_name]
         elif dataset_selection == 'Winter':
             filtered_class_plus = winter_class_plus_df[winter_class_plus_df["playerFullName"] == pitcher_name]
-        else:  # "All" option - Calculate weighted average
-            filtered_class_plus = all_class_plus_df[all_class_plus_df["playerFullName"] == pitcher_name]
+        elif dataset_selection == 'Spring Preseason':
+            filtered_class_plus = spring_class_plus_df[spring_class_plus_df["playerFullName"] == pitcher_name]
+        else:  # "All"
+    filtered_class_plus = all_class_plus_df[all_class_plus_df["playerFullName"] == pitcher_name]
+
             filtered_class_plus = (
                 filtered_class_plus.groupby("PitchType")
                 .apply(lambda x: pd.Series({
