@@ -20,7 +20,9 @@ spring_file_path = "Spring Intrasquads MASTER.csv"
 
 @st.cache_data
 def load_data(file_path):
-    return pd.read_csv(file_path, parse_dates=['Date'])  # Parse 'Date' column as datetime
+    df = pd.read_csv(file_path, parse_dates=['Date'])  # Parse 'Date' column as datetime
+    df = df[df['Date'].notna()]  # Remove rows with missing Date values
+    return df
 
 # Load Fall and Winter datasets
 fall_df = load_data(fall_file_path)
