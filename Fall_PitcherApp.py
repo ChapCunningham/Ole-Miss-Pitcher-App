@@ -163,40 +163,41 @@ else:  # "All"
     rolling_df = pd.concat([fall_rolling_df, winter_rolling_df, spring_rolling_df])
 
 
-# Function to filter data based on the dropdown selections and date filters
 def filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
-    # Filter data for the selected pitcher
-    pitcher_data = test_df[test_df['Pitcher'] == pitcher_name]
+    try:
+        # Filter data for the selected pitcher
+        pitcher_data = test_df[test_df['Pitcher'] == pitcher_name]
 
-    # Apply filtering for batter side, including 'Both' option
-    if batter_side == 'Both':
-        pitcher_data = pitcher_data[pitcher_data['BatterSide'].isin(['Right', 'Left'])]
-    else:
-        pitcher_data = pitcher_data[pitcher_data['BatterSide'] == batter_side]
+        # Apply filtering for batter side, including 'Both' option
+        if batter_side == 'Both':
+            pitcher_data = pitcher_data[pitcher_data['BatterSide'].isin(['Right', 'Left'])]
+        else:
+            pitcher_data = pitcher_data[pitcher_data['BatterSide'] == batter_side]
 
-    # Apply filtering for strikes if 'All' is not selected
-    if strikes != 'All':
-        pitcher_data = pitcher_data[pitcher_data['Strikes'] == strikes]
+        # Apply filtering for strikes if 'All' is not selected
+        if strikes != 'All':
+            pitcher_data = pitcher_data[pitcher_data['Strikes'] == strikes]
 
-    # Apply filtering for balls if 'All' is not selected
-    if balls != 'All':
-        pitcher_data = pitcher_data[pitcher_data['Balls'] == balls]
-    
-    # Apply date filtering
-    if date_filter_option == "Single Date" and selected_date:
-        # Convert selected_date to datetime if necessary
-        selected_datetime = pd.to_datetime(selected_date)
-        pitcher_data = pitcher_data[pitcher_data['Date'].dt.date == selected_datetime.date()]
-    elif date_filter_option == "Date Range" and start_date and end_date:
-        # Convert start_date and end_date to datetime if necessary
-        start_datetime = pd.to_datetime(start_date)
-        end_datetime = pd.to_datetime(end_date)
-        pitcher_data = pitcher_data[
-            (pitcher_data['Date'] >= start_datetime) & 
-            (pitcher_data['Date'] <= end_datetime)
-        ]
-    
-    return pitcher_data
+        # Apply filtering for balls if 'All' is not selected
+        if balls != 'All':
+            pitcher_data = pitcher_data[pitcher_data['Balls'] == balls]
+
+        # Apply date filtering
+        if date_filter_option == "Single Date" and selected_date:
+            selected_datetime = pd.to_datetime(selected_date)
+            pitcher_data = pitcher_data[pitcher_data['Date'].dt.date == selected_datetime.date()]
+        elif date_filter_option == "Date Range" and start_date and end_date:
+            start_datetime = pd.to_datetime(start_date)
+            end_datetime = pd.to_datetime(end_date)
+            pitcher_data = pitcher_data[
+                (pitcher_data['Date'] >= start_datetime) & 
+                (pitcher_data['Date'] <= end_datetime)
+            ]
+
+        return pitcher_data
+    except Exception as e:
+        st.error(f"Error filtering data: {e}")
+        return pd.DataFrame()  # Return an empty DataFrame to avoid further errors
 
 
 def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date, map_type):
