@@ -122,6 +122,10 @@ balls = st.sidebar.selectbox(
 st.sidebar.header("Date Filtering")
 
 # Option to choose the type of date filter
+# Date Filtering Section
+st.sidebar.header("Date Filtering")
+
+# Option to choose the type of date filter
 date_filter_option = st.sidebar.selectbox(
     "Select Date Filter:",
     options=["All", "Single Date", "Date Range"]
@@ -139,10 +143,15 @@ if date_filter_option == "Single Date":
         value=datetime.today()
     )
 elif date_filter_option == "Date Range":
-    start_date, end_date = st.sidebar.date_input(
+    date_range = st.sidebar.date_input(
         "Select Date Range",
         value=[datetime.today(), datetime.today()]
     )
+    # Check if the user selected a valid date range
+    if len(date_range) == 2:
+        start_date, end_date = date_range
+    else:
+        st.sidebar.warning("Please select a valid date range.")
 
 
 # File path for Spring Rolling CLASS+ dataset
