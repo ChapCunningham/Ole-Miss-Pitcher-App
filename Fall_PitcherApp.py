@@ -496,27 +496,26 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         }
         grouped_data = grouped_data.rename(columns=rename_columns)
 
-        # Convert all numeric columns to numeric format and coerce errors to NaN
+        # Ensure numeric conversion (ignoring errors)
         numeric_columns = ['Velo', 'iVB', 'HB', 'Spin', 'RelH', 'RelS', 'Ext', 'VAA']
-        for col in numeric_columns:
-            grouped_data[col] = pd.to_numeric(grouped_data[col], errors='coerce')
+        grouped_data[numeric_columns] = grouped_data[numeric_columns].apply(pd.to_numeric, errors='coerce')
 
-        # Round numeric columns to 1 decimal place
-        grouped_data[numeric_columns] = grouped_data[numeric_columns].apply(lambda x: x.round(1))
+        # Round numeric columns
+        grouped_data[numeric_columns] = grouped_data[numeric_columns].round(1)
 
-        # Determine the source of CLASS+ based on date filter
+        # Determine CLASS+ source based on date filter
         if date_filter_option == "All":
-            # Select CLASS+ data from the static dataset
+            # Use static dataset
             if dataset_selection == 'Fall':
                 filtered_class_plus = class_plus_df[class_plus_df["playerFullName"] == pitcher_name]
             elif dataset_selection == 'Winter':
                 filtered_class_plus = winter_class_plus_df[winter_class_plus_df["playerFullName"] == pitcher_name]
             elif dataset_selection == 'Spring Preseason':
                 filtered_class_plus = spring_class_plus_df[spring_class_plus_df["playerFullName"] == pitcher_name]
-            else:  # "All"
+            else:
                 filtered_class_plus = all_class_plus_df[all_class_plus_df["playerFullName"] == pitcher_name]
 
-            # Aggregate CLASS+ for all selected data
+            # Aggregate CLASS+
             filtered_class_plus = (
                 filtered_class_plus.groupby("PitchType")
                 .apply(lambda x: pd.Series({
@@ -524,9 +523,9 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
                 }))
                 .reset_index()
             )
-        
+
         else:
-            # Use rolling dataset based on selected dataset
+            # Use rolling dataset
             if dataset_selection == 'Fall':
                 rolling_df = fall_rolling_df
             elif dataset_selection == 'Winter':
@@ -536,17 +535,19 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             else:
                 rolling_df = pd.concat([fall_rolling_df, winter_rolling_df, spring_rolling_df])
 
-            # Filter rolling dataset for the selected pitcher
+            # Filter rolling dataset
             rolling_pitcher_data = rolling_df[rolling_df["playerFullName"] == pitcher_name]
 
             # Apply date filtering
             if date_filter_option == "Single Date":
                 rolling_pitcher_data = rolling_pitcher_data[rolling_pitcher_data["Date"] <= pd.to_datetime(selected_date)]
             elif date_filter_option == "Date Range":
-                rolling_pitcher_data = rolling_pitcher_data[(rolling_pitcher_data["Date"] >= pd.to_datetime(start_date)) &
-                                                            (rolling_pitcher_data["Date"] <= pd.to_datetime(end_date))]
+                rolling_pitcher_data = rolling_pitcher_data[
+                    (rolling_pitcher_data["Date"] >= pd.to_datetime(start_date)) & 
+                    (rolling_pitcher_data["Date"] <= pd.to_datetime(end_date))
+                ]
 
-            # Keep only the latest CLASS+ value for each pitch type
+            # Get latest CLASS+ values
             filtered_class_plus = (
                 rolling_pitcher_data.sort_values("Date")
                 .groupby("PitchType")
@@ -554,7 +555,7 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
                 .reset_index()
             )
 
-        # Merge CLASS+ data into the grouped table
+        # Merge CLASS+ data
         grouped_data = pd.merge(
             grouped_data,
             filtered_class_plus,
@@ -564,15 +565,16 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         )
 
         # Drop redundant column
-        grouped_data = grouped_data.drop(columns=["PitchType"], errors="ignore")
+        grouped_data.drop(columns=["PitchType"], errors="ignore", inplace=True)
 
-        # Fill missing CLASS+ scores with "N/A"
-        grouped_data["CLASS+"] = pd.to_numeric(grouped_data["CLASS+"], errors="coerce").fillna("N/A")
+        # Convert CLASS+ to numeric (ignoring errors) and fill missing values with "N/A"
+        grouped_data["CLASS+"] = pd.to_numeric(grouped_data["CLASS+"], errors="coerce").round(1)
+        grouped_data["CLASS+"] = grouped_data["CLASS+"].fillna("N/A")
 
-        # Sort by 'Count' (most frequently thrown pitches first)
-        grouped_data = grouped_data.sort_values(by='Count', ascending=False)
+        # Sort by 'Count' (most frequent pitches first)
+        grouped_data.sort_values(by='Count', ascending=False, inplace=True)
 
-        # Calculate "All" row
+        # Compute overall averages for "All" row
         total_count = grouped_data["Count"].sum()
         weighted_averages = {
             column: np.average(
@@ -581,13 +583,14 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             for column in numeric_columns
         }
 
-        # Calculate the weighted average for CLASS+
+        # Calculate weighted CLASS+ average
         valid_class_plus = grouped_data.loc[grouped_data["CLASS+"] != "N/A", "CLASS+"].astype(float)
         valid_class_plus_weights = grouped_data.loc[grouped_data["CLASS+"] != "N/A", "Count"]
         class_plus_weighted_avg = (
             np.average(valid_class_plus, weights=valid_class_plus_weights) if not valid_class_plus.empty else "N/A"
         )
 
+        # Construct "All" row
         all_row = {
             'Pitch': 'All',
             'Count': total_count,
