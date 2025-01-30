@@ -523,14 +523,18 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             (filtered_class_plus["Date"] <= pd.to_datetime(end_date))
     ]
 
+# Ensure CLASS+ is numeric before calculations
+        filtered_class_plus["CLASS+"] = pd.to_numeric(filtered_class_plus["CLASS+"], errors="coerce")
+
 # If multiple rows exist for the same pitch type, calculate the weighted average CLASS+
         filtered_class_plus = (
             filtered_class_plus.groupby("PitchType")
             .apply(lambda x: pd.Series({
-                "CLASS+": np.average(x["CLASS+"], weights=x["Count"]) if "Count" in x else x["CLASS+"].mean()
+                "CLASS+": np.average(x["CLASS+"].dropna(), weights=x["Count"].dropna()) if "Count" in x else x["CLASS+"].mean()
             }))
             .reset_index()
-)
+        )
+
 
 
         # Merge aggregated data with CLASS+ scores
