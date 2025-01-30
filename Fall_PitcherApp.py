@@ -504,35 +504,34 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         # Round numeric columns to 1 decimal place
         grouped_data[numeric_columns] = grouped_data[numeric_columns].apply(lambda x: x.round(1))
 
-        # Select CLASS+ data based on dataset selection
-        # Select CLASS+ data based on dataset selection
-        # Select CLASS+ data based on dataset selection
+                # Use the rolling CLASS+ dataset instead of class_plus_df
         if dataset_selection == 'Fall':
-            filtered_class_plus = class_plus_df[class_plus_df["playerFullName"] == pitcher_name]
+            filtered_class_plus = fall_rolling_df[fall_rolling_df["playerFullName"] == pitcher_name]
         elif dataset_selection == 'Winter':
-            filtered_class_plus = winter_class_plus_df[winter_class_plus_df["playerFullName"] == pitcher_name]
+            filtered_class_plus = winter_rolling_df[winter_rolling_df["playerFullName"] == pitcher_name]
         elif dataset_selection == 'Spring Preseason':
-            filtered_class_plus = spring_class_plus_df[spring_class_plus_df["playerFullName"] == pitcher_name]
+            filtered_class_plus = spring_rolling_df[spring_rolling_df["playerFullName"] == pitcher_name]
         else:  # "All"
-            filtered_class_plus = all_class_plus_df[all_class_plus_df["playerFullName"] == pitcher_name]
+            filtered_class_plus = rolling_df[rolling_df["playerFullName"] == pitcher_name]
 
-        # Apply date filtering to CLASS+ data
+# Apply date filtering to rolling CLASS+ data
         if date_filter_option == "Single Date" and selected_date:
             filtered_class_plus = filtered_class_plus[filtered_class_plus["Date"] == pd.to_datetime(selected_date)]
         elif date_filter_option == "Date Range" and start_date and end_date:
             filtered_class_plus = filtered_class_plus[
-                (filtered_class_plus["Date"] >= pd.to_datetime(start_date)) &
-                (filtered_class_plus["Date"] <= pd.to_datetime(end_date))
+            (filtered_class_plus["Date"] >= pd.to_datetime(start_date)) &
+            (filtered_class_plus["Date"] <= pd.to_datetime(end_date))
     ]
 
+# If multiple rows exist for the same pitch type, calculate the weighted average CLASS+
+        filtered_class_plus = (
+            filtered_class_plus.groupby("PitchType")
+            .apply(lambda x: pd.Series({
+                "CLASS+": np.average(x["CLASS+"], weights=x["Count"]) if "Count" in x else x["CLASS+"].mean()
+            }))
+            .reset_index()
+)
 
-            filtered_class_plus = (
-                filtered_class_plus.groupby("PitchType")
-                .apply(lambda x: pd.Series({
-                    "CLASS+": np.average(x["CLASS+"], weights=x["Count"]) if "Count" in x else x["CLASS+"].mean()
-                }))
-                .reset_index()
-            )
 
         # Merge aggregated data with CLASS+ scores
         grouped_data = pd.merge(
