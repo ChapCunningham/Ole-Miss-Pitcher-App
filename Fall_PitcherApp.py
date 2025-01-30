@@ -504,17 +504,19 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         # Round numeric columns to 1 decimal place
         grouped_data[numeric_columns] = grouped_data[numeric_columns].apply(lambda x: x.round(1))
 
-        # Select CLASS+ data based on dataset selection
-        # Select CLASS+ data based on dataset selection
-        if dataset_selection == 'Fall':
-            filtered_class_plus = class_plus_df[class_plus_df["playerFullName"] == pitcher_name]
-        elif dataset_selection == 'Winter':
-            filtered_class_plus = winter_class_plus_df[winter_class_plus_df["playerFullName"] == pitcher_name]
-        elif dataset_selection == 'Spring Preseason':
-            filtered_class_plus = spring_class_plus_df[spring_class_plus_df["playerFullName"] == pitcher_name]
-        else:  # "All"
-            filtered_class_plus = all_class_plus_df[all_class_plus_df["playerFullName"] == pitcher_name]
+        # Determine the source of CLASS+ based on date filter
+        if date_filter_option == "All":
+            # Select CLASS+ data from the static dataset
+            if dataset_selection == 'Fall':
+                filtered_class_plus = class_plus_df[class_plus_df["playerFullName"] == pitcher_name]
+            elif dataset_selection == 'Winter':
+                filtered_class_plus = winter_class_plus_df[winter_class_plus_df["playerFullName"] == pitcher_name]
+            elif dataset_selection == 'Spring Preseason':
+                filtered_class_plus = spring_class_plus_df[spring_class_plus_df["playerFullName"] == pitcher_name]
+            else:  # "All"
+                filtered_class_plus = all_class_plus_df[all_class_plus_df["playerFullName"] == pitcher_name]
 
+            # Aggregate CLASS+ for all selected data
             filtered_class_plus = (
                 filtered_class_plus.groupby("PitchType")
                 .apply(lambda x: pd.Series({
@@ -522,18 +524,49 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
                 }))
                 .reset_index()
             )
+        
+        else:
+            # Use rolling dataset based on selected dataset
+            if dataset_selection == 'Fall':
+                rolling_df = fall_rolling_df
+            elif dataset_selection == 'Winter':
+                rolling_df = winter_rolling_df
+            elif dataset_selection == 'Spring Preseason':
+                rolling_df = spring_rolling_df
+            else:
+                rolling_df = pd.concat([fall_rolling_df, winter_rolling_df, spring_rolling_df])
 
-        # Merge aggregated data with CLASS+ scores
+            # Filter rolling dataset for the selected pitcher
+            rolling_pitcher_data = rolling_df[rolling_df["playerFullName"] == pitcher_name]
+
+            # Apply date filtering
+            if date_filter_option == "Single Date":
+                rolling_pitcher_data = rolling_pitcher_data[rolling_pitcher_data["Date"] <= pd.to_datetime(selected_date)]
+            elif date_filter_option == "Date Range":
+                rolling_pitcher_data = rolling_pitcher_data[(rolling_pitcher_data["Date"] >= pd.to_datetime(start_date)) &
+                                                            (rolling_pitcher_data["Date"] <= pd.to_datetime(end_date))]
+
+            # Keep only the latest CLASS+ value for each pitch type
+            filtered_class_plus = (
+                rolling_pitcher_data.sort_values("Date")
+                .groupby("PitchType")
+                .last()[["CLASS+"]]
+                .reset_index()
+            )
+
+        # Merge CLASS+ data into the grouped table
         grouped_data = pd.merge(
             grouped_data,
-            filtered_class_plus[["PitchType", "CLASS+"]],  # Select only relevant columns
+            filtered_class_plus,
             how="left",
             left_on="Pitch",
             right_on="PitchType"
         )
 
-        # Drop redundant 'PitchType' column and fill missing CLASS+ scores with "N/A"
+        # Drop redundant column
         grouped_data = grouped_data.drop(columns=["PitchType"], errors="ignore")
+
+        # Fill missing CLASS+ scores with "N/A"
         grouped_data["CLASS+"] = pd.to_numeric(grouped_data["CLASS+"], errors="coerce").fillna("N/A")
 
         # Sort by 'Count' (most frequently thrown pitches first)
@@ -569,18 +602,14 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             'CLASS+': round(class_plus_weighted_avg, 1) if pd.notna(class_plus_weighted_avg) else 'N/A'
         }
 
-        # Append "All" row to the DataFrame
-        all_row_df = pd.DataFrame([all_row])
-        grouped_data = pd.concat([grouped_data, all_row_df], ignore_index=True)
+        # Append "All" row
+        grouped_data = pd.concat([grouped_data, pd.DataFrame([all_row])], ignore_index=True)
 
-        # Format the data before displaying
+        # Format and display table
         formatted_data = format_dataframe(grouped_data)
-
-        # Display the results in Streamlit
         st.subheader("Pitch Traits:")
         st.dataframe(formatted_data)
-    except KeyError as ke:
-        st.error(f"Key error encountered: {ke}. Please check the input data and column names.")
+
     except Exception as e:
         st.error(f"An error occurred while generating the pitch traits table: {e}")
 
