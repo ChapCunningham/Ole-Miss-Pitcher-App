@@ -546,9 +546,15 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             right_on="PitchType"
         )
 
-        # Drop redundant 'PitchType' column and fill missing CLASS+ scores with "N/A"
+        # Drop redundant 'PitchType' column
         grouped_data = grouped_data.drop(columns=["PitchType"], errors="ignore")
-        grouped_data["CLASS+"] = pd.to_numeric(grouped_data["CLASS+"], errors="coerce").fillna("N/A")
+
+# Convert CLASS+ to numeric, replacing non-numeric values with NaN
+        grouped_data["CLASS+"] = pd.to_numeric(grouped_data["CLASS+"], errors="coerce")
+
+# Replace NaN values with a placeholder (e.g., "N/A") for display, but keep NaN for calculations
+        grouped_data["CLASS+_display"] = grouped_data["CLASS+"].apply(lambda x: round(x, 1) if pd.notna(x) else "N/A")
+
 
         # Sort by 'Count' (most frequently thrown pitches first)
         grouped_data = grouped_data.sort_values(by='Count', ascending=False)
@@ -563,7 +569,7 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         }
 
         # Calculate the weighted average for CLASS+
-        valid_class_plus = grouped_data.loc[grouped_data["CLASS+"] != "N/A", "CLASS+"].astype(float)
+        valid_class_plus = grouped_data["CLASS+"].dropna()
         valid_class_plus_weights = grouped_data.loc[grouped_data["CLASS+"] != "N/A", "Count"]
         class_plus_weighted_avg = (
             np.average(valid_class_plus, weights=valid_class_plus_weights) if not valid_class_plus.empty else "N/A"
@@ -580,7 +586,8 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             'RelS': round(weighted_averages['RelS'], 1) if pd.notna(weighted_averages['RelS']) else 'N/A',
             'Ext': round(weighted_averages['Ext'], 1) if pd.notna(weighted_averages['Ext']) else 'N/A',
             'VAA': round(weighted_averages['VAA'], 1) if pd.notna(weighted_averages['VAA']) else 'N/A',
-            'CLASS+': round(class_plus_weighted_avg, 1) if pd.notna(class_plus_weighted_avg) else 'N/A'
+            'CLASS+': round(class_plus_weighted_avg, 1) if not np.isnan(class_plus_weighted_avg) else 'N/A'
+
         }
 
         # Append "All" row to the DataFrame
