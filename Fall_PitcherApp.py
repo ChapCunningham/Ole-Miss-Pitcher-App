@@ -506,6 +506,7 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
 
         # Select CLASS+ data based on dataset selection
         # Select CLASS+ data based on dataset selection
+        # Select CLASS+ data based on dataset selection
         if dataset_selection == 'Fall':
             filtered_class_plus = class_plus_df[class_plus_df["playerFullName"] == pitcher_name]
         elif dataset_selection == 'Winter':
@@ -514,6 +515,16 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             filtered_class_plus = spring_class_plus_df[spring_class_plus_df["playerFullName"] == pitcher_name]
         else:  # "All"
             filtered_class_plus = all_class_plus_df[all_class_plus_df["playerFullName"] == pitcher_name]
+
+        # Apply date filtering to CLASS+ data
+        if date_filter_option == "Single Date" and selected_date:
+            filtered_class_plus = filtered_class_plus[filtered_class_plus["Date"] == pd.to_datetime(selected_date)]
+        elif date_filter_option == "Date Range" and start_date and end_date:
+            filtered_class_plus = filtered_class_plus[
+                (filtered_class_plus["Date"] >= pd.to_datetime(start_date)) &
+                (filtered_class_plus["Date"] <= pd.to_datetime(end_date))
+    ]
+
 
             filtered_class_plus = (
                 filtered_class_plus.groupby("PitchType")
