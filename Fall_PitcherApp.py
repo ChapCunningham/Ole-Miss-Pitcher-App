@@ -78,7 +78,7 @@ st.sidebar.header("Filters")
 # Dropdown for dataset selection (Fall, Winter, Spring, or All)
 dataset_selection = st.sidebar.selectbox(
     "Select Dataset:",
-    options=['Fall', 'Winter', 'Spring Preseason', 'All']
+    options=['2025 Season','Fall', 'Winter', 'Spring Preseason', 'All']
 )
 
 # Apply dataset selection
