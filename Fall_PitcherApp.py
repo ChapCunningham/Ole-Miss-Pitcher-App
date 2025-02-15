@@ -185,7 +185,7 @@ elif dataset_selection == 'Winter':
     rolling_df = winter_rolling_df
 elif dataset_selection == 'Spring Preseason':
     rolling_df = spring_rolling_df
-elif dataset_selection = '2025 Season':
+elif dataset_selection == '2025 Season':
     rolling_df = season_rolling_df
 else:  # "All"
     rolling_df = pd.concat([fall_rolling_df, winter_rolling_df, spring_rolling_df], season_rolling_df)
