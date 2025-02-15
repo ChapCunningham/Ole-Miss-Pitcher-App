@@ -13,6 +13,7 @@ winter_file_path = 'WINTER_ALL_trackman.csv'  # Winter dataset
 
 # File path for Spring Preseason dataset
 spring_file_path = "Spring Intrasquads MASTER.csv"
+season_25_file_path = "2025_SEASON.csv"
 
 # Load Spring Preseason dataset
 
@@ -31,17 +32,19 @@ def load_data(file_path):
 fall_df = load_data(fall_file_path)
 winter_df = load_data(winter_file_path)
 spring_df = load_data(spring_file_path)
+season_df = load_data(season_25_file_path)
 
 # Add a column to distinguish datasets
 fall_df['Season'] = 'Fall'
 winter_df['Season'] = 'Winter'
 spring_df['Season'] = 'Spring Preseason'
+season_df['Season'] = '2025 Season'
 
 # Combine datasets for "All" option
-all_data_df = pd.concat([fall_df, winter_df, spring_df])
+all_data_df = pd.concat([fall_df, winter_df, spring_df, season_df])
 
 # Default to "Fall" dataset initially
-test_df = fall_df
+test_df = season_df
 test_df = test_df[test_df['PitcherTeam'] == 'OLE_REB']
 
 # File paths for the CLASS+ and OTHER Rolling Stats CSVs
@@ -85,6 +88,9 @@ elif dataset_selection == 'Winter':
     test_df = winter_df
 elif dataset_selection == 'Spring Preseason':
     test_df = spring_df
+
+elif dataset_selection == '2025 Season':
+    test_df = season_df
 else:  # "All"
     test_df = all_data_df
 
@@ -161,10 +167,16 @@ elif date_filter_option == "Date Range":
 
 # File path for Spring Rolling CLASS+ dataset
 spring_rolling_path = "spring_CLASS+_by_date.csv"
+season_rolling_path = "2025_CLASS+_by_data.csv"
 
 # Load Spring rolling CLASS+ dataset
 spring_rolling_df = load_data(spring_rolling_path)
 spring_rolling_df['Season'] = 'Spring Preseason'
+
+season_rolling_df = load_data(season_rolling_path)
+season_rolling_df['Season'] = '2025 Season'
+
+
 
 # Update the rolling dataset selection
 if dataset_selection == 'Fall':
@@ -173,8 +185,10 @@ elif dataset_selection == 'Winter':
     rolling_df = winter_rolling_df
 elif dataset_selection == 'Spring Preseason':
     rolling_df = spring_rolling_df
+elif dataset_selection = '2025 Season':
+    rolling_df = season_rolling_df
 else:  # "All"
-    rolling_df = pd.concat([fall_rolling_df, winter_rolling_df, spring_rolling_df])
+    rolling_df = pd.concat([fall_rolling_df, winter_rolling_df, spring_rolling_df], season_rolling_df)
 
 
 def filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
@@ -429,6 +443,8 @@ winter_class_plus_df = load_winter_class_plus_data(winter_class_plus_file_path)
 
 # File path for Spring CLASS+ dataset
 spring_class_plus_file_path = "spring_CLASS+.csv"
+
+season_class_plus_file_path = "2025_CLASS+.csv"
 
 # Load Spring CLASS+ CSV
 @st.cache_data
