@@ -188,7 +188,7 @@ elif dataset_selection == 'Spring Preseason':
 elif dataset_selection == '2025 Season':
     rolling_df = season_rolling_df
 else:  # "All"
-    rolling_df = pd.concat([fall_rolling_df, winter_rolling_df, spring_rolling_df], season_rolling_df)
+    rolling_df = pd.concat([fall_rolling_df, winter_rolling_df, spring_rolling_df, season_rolling_df])
 
 
 def filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
