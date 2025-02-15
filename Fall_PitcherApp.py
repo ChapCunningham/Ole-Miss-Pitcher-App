@@ -167,7 +167,7 @@ elif date_filter_option == "Date Range":
 
 # File path for Spring Rolling CLASS+ dataset
 spring_rolling_path = "spring_CLASS+_by_date.csv"
-season_rolling_path = "2025_CLASS+_by_data.csv"
+season_rolling_path = "2025_CLASS+_by_date.csv"
 
 # Load Spring rolling CLASS+ dataset
 spring_rolling_df = load_data(spring_rolling_path)
