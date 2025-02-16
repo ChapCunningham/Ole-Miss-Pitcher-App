@@ -469,7 +469,7 @@ spring_class_plus_df = load_spring_class_plus_data(spring_class_plus_file_path)
 
 # Load Spring CLASS+ CSV
 @st.cache_data
-def load_seaspn_class_plus_data(file_path):
+def load_season_class_plus_data(file_path):
     df = pd.read_csv(file_path)
     df['Season'] = '2025 Season'  # Add season identifier
     # Rename pitch types to match other datasets
@@ -492,7 +492,7 @@ season_class_plus_df = load_season_class_plus_data(season_class_plus_file_path)
 class_plus_df['Season'] = 'Fall'
 
 # Combine Fall and Winter CLASS+ datasets
-all_class_plus_df = pd.concat([class_plus_df, winter_class_plus_df, spring_class_plus_df])
+all_class_plus_df = pd.concat([class_plus_df, winter_class_plus_df, spring_class_plus_df,season_class_plus_df])
 
 
 
