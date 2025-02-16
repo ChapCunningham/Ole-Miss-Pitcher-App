@@ -467,6 +467,27 @@ def load_spring_class_plus_data(file_path):
 spring_class_plus_df = load_spring_class_plus_data(spring_class_plus_file_path)
 
 
+# Load Spring CLASS+ CSV
+@st.cache_data
+def load_seaspn_class_plus_data(file_path):
+    df = pd.read_csv(file_path)
+    df['Season'] = '2025 Season'  # Add season identifier
+    # Rename pitch types to match other datasets
+    df["PitchType"] = df["PitchType"].map({
+        "4S": "Fastball",
+        "SI": "Sinker",
+        "FC": "Cutter",
+        "SL": "Slider",
+        "CU": "Curveball",
+        "FS": "Splitter",
+        "CH": "ChangeUp"
+    })
+    return df
+
+# Load the Spring CLASS+ dataset
+season_class_plus_df = load_season_class_plus_data(season_class_plus_file_path)
+
+
 # Add Season identifier to Fall CLASS+ dataset
 class_plus_df['Season'] = 'Fall'
 
