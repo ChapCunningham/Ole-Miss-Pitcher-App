@@ -1076,7 +1076,7 @@ def plot_release_and_approach_angles(pitcher_name, batter_side, strikes, balls, 
             st.write("No data available for the selected parameters.")
             return
 
-        # Drop NaN values for plotting purposes
+        # Drop NaN values for plotting
         release_data = pitcher_data.dropna(subset=['HorzRelAngle', 'VertRelAngle'])
         approach_data = pitcher_data.dropna(subset=['HorzApprAngle', 'VertApprAngle'])
 
@@ -1097,8 +1097,8 @@ def plot_release_and_approach_angles(pitcher_name, batter_side, strikes, balls, 
             'Other': 'black'
         }
 
-        # Function to create a scatter plot with bounding circles
-        def create_scatter_plot(data, x_col, y_col, title):
+        # Function to create a scatter plot with bounding circles and average values
+        def create_scatter_plot(data, x_col, y_col, title, x_lim, y_lim):
             fig = go.Figure()
 
             # Get unique pitch types
@@ -1107,12 +1107,21 @@ def plot_release_and_approach_angles(pitcher_name, batter_side, strikes, balls, 
             for pitch_type in unique_pitch_types:
                 pitch_type_data = data[data['TaggedPitchType'] == pitch_type]
 
+                # Calculate mean and standard deviation for bounding circle
+                mean_x = pitch_type_data[x_col].mean()
+                mean_y = pitch_type_data[y_col].mean()
+                std_dev_x = pitch_type_data[x_col].std()
+                std_dev_y = pitch_type_data[y_col].std()
+
+                # Format average values for legend
+                avg_label = f"{pitch_type} ({mean_x:.1f}, {mean_y:.1f})"
+
                 # Plot scatter points
                 fig.add_trace(go.Scatter(
                     x=pitch_type_data[x_col],
                     y=pitch_type_data[y_col],
                     mode='markers',
-                    name=pitch_type,
+                    name=avg_label,  # Use formatted label
                     marker=dict(
                         size=8,
                         color=plotly_color_dict.get(pitch_type, 'black'),
@@ -1120,16 +1129,9 @@ def plot_release_and_approach_angles(pitcher_name, batter_side, strikes, balls, 
                     )
                 ))
 
-                # Calculate mean and standard deviation for bounding circle
-                mean_x = pitch_type_data[x_col].mean()
-                mean_y = pitch_type_data[y_col].mean()
-                std_dev_x = pitch_type_data[x_col].std()
-                std_dev_y = pitch_type_data[y_col].std()
-
+                # Draw bounding circle if data exists
                 if not (pd.isna(mean_x) or pd.isna(mean_y) or pd.isna(std_dev_x) or pd.isna(std_dev_y)):
-                    # Approximate bounding circle by taking the larger standard deviation
-                    radius = max(std_dev_x, std_dev_y)
-
+                    radius = max(std_dev_x, std_dev_y)  # Use the largest std dev
                     fig.add_shape(
                         type="circle",
                         xref="x", yref="y",
@@ -1139,14 +1141,14 @@ def plot_release_and_approach_angles(pitcher_name, batter_side, strikes, balls, 
                         opacity=0.3
                     )
 
-            # Customize layout
+            # Customize layout with limits
             fig.update_layout(
                 title=title,
-                xaxis_title=x_col,
-                yaxis_title=y_col,
+                xaxis=dict(title=x_col, range=x_lim),
+                yaxis=dict(title=y_col, range=y_lim),
                 template="plotly_white",
                 showlegend=True,
-                width=800,  # Adjust for better layout
+                width=800,
                 height=700
             )
 
@@ -1154,17 +1156,28 @@ def plot_release_and_approach_angles(pitcher_name, batter_side, strikes, balls, 
 
         # Create and display the release angle plot
         if not release_data.empty:
-            release_fig = create_scatter_plot(release_data, 'HorzRelAngle', 'VertRelAngle', "Release Angles by Pitch Type")
+            release_fig = create_scatter_plot(
+                release_data, 
+                'HorzRelAngle', 'VertRelAngle', 
+                "Release Angles by Pitch Type", 
+                x_lim=[-7.5, 7.5], 
+                y_lim=[-5, 3]
+            )
             st.plotly_chart(release_fig, use_container_width=True)
 
         # Create and display the approach angle plot
         if not approach_data.empty:
-            approach_fig = create_scatter_plot(approach_data, 'HorzApprAngle', 'VertApprAngle', "Approach Angles by Pitch Type")
+            approach_fig = create_scatter_plot(
+                approach_data, 
+                'HorzApprAngle', 'VertApprAngle', 
+                "Approach Angles by Pitch Type", 
+                x_lim=[-6, 6], 
+                y_lim=[-12, 0]
+            )
             st.plotly_chart(approach_fig, use_container_width=True)
 
     except Exception as e:
         st.error(f"An error occurred while generating the angle plots: {e}")
-
 
 
 
