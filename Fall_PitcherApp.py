@@ -1065,6 +1065,108 @@ def generate_rolling_line_graphs(
 
 
 
+import plotly.graph_objects as go
+
+def plot_release_and_approach_angles(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
+    try:
+        # Filter data based on selected parameters
+        pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date)
+
+        if pitcher_data.empty:
+            st.write("No data available for the selected parameters.")
+            return
+
+        # Drop NaN values for plotting purposes
+        release_data = pitcher_data.dropna(subset=['HorzRelAngle', 'VertRelAngle'])
+        approach_data = pitcher_data.dropna(subset=['HorzApprAngle', 'VertApprAngle'])
+
+        if release_data.empty and approach_data.empty:
+            st.write("No angle data available for plotting.")
+            return
+
+        # Define Plotly color equivalents for pitch types
+        plotly_color_dict = {
+            'Fastball': 'royalblue',
+            'Sinker': 'goldenrod',
+            'Slider': 'mediumseagreen',
+            'Curveball': 'firebrick',
+            'Cutter': 'darkorange',
+            'ChangeUp': 'mediumpurple',
+            'Splitter': 'teal',
+            'Unknown': 'black',
+            'Other': 'black'
+        }
+
+        # Function to create a scatter plot with bounding circles
+        def create_scatter_plot(data, x_col, y_col, title):
+            fig = go.Figure()
+
+            # Get unique pitch types
+            unique_pitch_types = data['TaggedPitchType'].unique()
+
+            for pitch_type in unique_pitch_types:
+                pitch_type_data = data[data['TaggedPitchType'] == pitch_type]
+
+                # Plot scatter points
+                fig.add_trace(go.Scatter(
+                    x=pitch_type_data[x_col],
+                    y=pitch_type_data[y_col],
+                    mode='markers',
+                    name=pitch_type,
+                    marker=dict(
+                        size=8,
+                        color=plotly_color_dict.get(pitch_type, 'black'),
+                        opacity=0.7
+                    )
+                ))
+
+                # Calculate mean and standard deviation for bounding circle
+                mean_x = pitch_type_data[x_col].mean()
+                mean_y = pitch_type_data[y_col].mean()
+                std_dev_x = pitch_type_data[x_col].std()
+                std_dev_y = pitch_type_data[y_col].std()
+
+                if not (pd.isna(mean_x) or pd.isna(mean_y) or pd.isna(std_dev_x) or pd.isna(std_dev_y)):
+                    # Approximate bounding circle by taking the larger standard deviation
+                    radius = max(std_dev_x, std_dev_y)
+
+                    fig.add_shape(
+                        type="circle",
+                        xref="x", yref="y",
+                        x0=mean_x - radius, y0=mean_y - radius,
+                        x1=mean_x + radius, y1=mean_y + radius,
+                        line=dict(color=plotly_color_dict.get(pitch_type, 'black'), width=2),
+                        opacity=0.3
+                    )
+
+            # Customize layout
+            fig.update_layout(
+                title=title,
+                xaxis_title=x_col,
+                yaxis_title=y_col,
+                template="plotly_white",
+                showlegend=True,
+                width=800,  # Adjust for better layout
+                height=700
+            )
+
+            return fig
+
+        # Create and display the release angle plot
+        if not release_data.empty:
+            release_fig = create_scatter_plot(release_data, 'HorzRelAngle', 'VertRelAngle', "Release Angles by Pitch Type")
+            st.plotly_chart(release_fig, use_container_width=True)
+
+        # Create and display the approach angle plot
+        if not approach_data.empty:
+            approach_fig = create_scatter_plot(approach_data, 'HorzApprAngle', 'VertApprAngle', "Approach Angles by Pitch Type")
+            st.plotly_chart(approach_fig, use_container_width=True)
+
+    except Exception as e:
+        st.error(f"An error occurred while generating the angle plots: {e}")
+
+
+
 
 
 
@@ -1142,5 +1244,18 @@ generate_rolling_line_graphs(
     date_filter_option,
     selected_date,
     start_date,
+    end_date
+)
+
+
+# Call the function at the bottom of your Streamlit app
+plot_release_and_approach_angles(
+    pitcher_name, 
+    batter_side, 
+    strikes, 
+    balls, 
+    date_filter_option, 
+    selected_date, 
+    start_date, 
     end_date
 )
