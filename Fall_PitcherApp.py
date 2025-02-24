@@ -549,6 +549,8 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             filtered_class_plus = winter_class_plus_df[winter_class_plus_df["playerFullName"] == pitcher_name]
         elif dataset_selection == 'Spring Preseason':
             filtered_class_plus = spring_class_plus_df[spring_class_plus_df["playerFullName"] == pitcher_name]
+         elif dataset_selection == '2025 Season':
+            filtered_class_plus = season_class_plus_df[spring_class_plus_df["playerFullName"] == pitcher_name]
         else:  # "All"
             filtered_class_plus = all_class_plus_df[all_class_plus_df["playerFullName"] == pitcher_name]
 
