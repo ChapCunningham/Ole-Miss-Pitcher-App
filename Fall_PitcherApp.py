@@ -1259,7 +1259,7 @@ generate_batted_ball_table(
 
 
 # Call the function in your Streamlit app
-plot_pitch_movement_plotly(
+plot_pitch_movement(
     pitcher_name, 
     batter_side, 
     strikes, 
