@@ -752,26 +752,25 @@ color_dict = {
 import plotly.express as px
 import plotly.graph_objects as go
 
-def plot_pitch_movement_plotly(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
+import plotly.graph_objects as go
+
+def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
-        # Filter data based on the selected parameters
+        # Filter data based on selected parameters
         pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date)
 
         if pitcher_data.empty:
             st.write("No data available for the selected parameters.")
             return
 
-        # Ensure InducedVertBreak and HorizontalBreak are available for plotting
-        movement_data = pitcher_data.dropna(subset=['InducedVertBreak', 'HorzBreak', 'RelSpeed', 'Date'])
+        # Drop NaN values for plotting
+        movement_data = pitcher_data.dropna(subset=['InducedVertBreak', 'HorzBreak'])
 
         if movement_data.empty:
             st.write("No pitch movement data available for plotting.")
             return
 
-        # Convert Date column to string format for hover display
-        movement_data['Date'] = movement_data['Date'].astype(str)
-
-        # Define color dictionary for pitch types
+        # Define Plotly color equivalents for pitch types
         plotly_color_dict = {
             'Fastball': 'royalblue',
             'Sinker': 'goldenrod',
@@ -784,55 +783,68 @@ def plot_pitch_movement_plotly(pitcher_name, batter_side, strikes, balls, date_f
             'Other': 'black'
         }
 
-        # Create a scatter plot using Plotly
+        # Create Plotly figure
         fig = go.Figure()
 
         # Get unique pitch types
         unique_pitch_types = movement_data['TaggedPitchType'].unique()
 
         for pitch_type in unique_pitch_types:
-            pitch_data = movement_data[movement_data['TaggedPitchType'] == pitch_type]
+            pitch_type_data = movement_data[movement_data['TaggedPitchType'] == pitch_type]
 
-            # Get color for pitch type
-            color = plotly_color_dict.get(pitch_type, 'black')
+            # Round numeric values for hover info
+            pitch_type_data['RelSpeed'] = pitch_type_data['RelSpeed'].round(1)
+            pitch_type_data['InducedVertBreak'] = pitch_type_data['InducedVertBreak'].round(1)
+            pitch_type_data['HorzBreak'] = pitch_type_data['HorzBreak'].round(1)
 
-            # Add scatter points with hover information
+            # Plot scatter points with hover data
             fig.add_trace(go.Scatter(
-                x=pitch_data['HorzBreak'],
-                y=pitch_data['InducedVertBreak'],
+                x=pitch_type_data['HorzBreak'],
+                y=pitch_type_data['InducedVertBreak'],
                 mode='markers',
                 name=pitch_type,
                 marker=dict(
                     size=8,
-                    color=color,
+                    color=plotly_color_dict.get(pitch_type, 'black'),
                     opacity=0.7
                 ),
-                hovertemplate=(
-                    f"<b>Pitch Type:</b> {pitch_type}<br>"
-                    "Date: %{customdata[0]}<br>"
-                    "Velocity: %{customdata[1]} mph<br>"
-                    "iVB: %{customdata[2]} inches<br>"
-                    "HB: %{customdata[3]} inches<br>"
-                ),
-                customdata=pitch_data[['Date', 'RelSpeed', 'InducedVertBreak', 'HorzBreak']].values
+                text=pitch_type_data.apply(
+                    lambda row: f"Date: {row['Date']}<br>RelSpeed: {row['RelSpeed']}<br>iVB: {row['InducedVertBreak']}<br>HB: {row['HorzBreak']}",
+                    axis=1
+                ),  # Hover info
+                hoverinfo='text'  # Display the custom hover text
             ))
 
-        # Update layout with limits and labels
+        # Add a **vertical** line at x=0 (center)
+        fig.add_shape(
+            type="line",
+            x0=0, x1=0, y0=-25, y1=25,
+            line=dict(color="black", width=2)
+        )
+
+        # Add a **horizontal** line at y=0 (center)
+        fig.add_shape(
+            type="line",
+            x0=-25, x1=25, y0=0, y1=0,
+            line=dict(color="black", width=2)
+        )
+
+        # Customize layout
         fig.update_layout(
-            title=f"{pitcher_name} Pitch Movement (iVB vs HB)",
+            title=f"Pitch Movement for {pitcher_name}",
             xaxis=dict(title="Horizontal Break (inches)", range=[-25, 25]),
             yaxis=dict(title="Induced Vertical Break (inches)", range=[-25, 25]),
             template="plotly_white",
+            showlegend=True,
             width=800,
             height=700
         )
 
-        # Show plot in Streamlit
+        # Display the plot in Streamlit
         st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
         st.error(f"An error occurred while generating the pitch movement graph: {e}")
-
 
 
 
