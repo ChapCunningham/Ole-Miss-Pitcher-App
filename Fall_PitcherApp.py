@@ -764,7 +764,7 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
             return
 
         # Drop NaN values for plotting
-        movement_data = pitcher_data.dropna(subset=['InducedVertBreak', 'HorzBreak'])
+        movement_data = pitcher_data.dropna(subset=['InducedVertBreak', 'HorzBreak', 'RelSpeed', 'Date'])
 
         if movement_data.empty:
             st.write("No pitch movement data available for plotting.")
@@ -786,48 +786,49 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
         # Create Plotly figure
         fig = go.Figure()
 
+        # Add **background reference lines** first so they appear **below** the scatter points
+        fig.add_shape(
+            type="line",
+            x0=0, x1=0, y0=-25, y1=25,
+            line=dict(color="black", width=2),
+            layer="below"  # Ensures the line is in the background
+        )
+        fig.add_shape(
+            type="line",
+            x0=-25, x1=25, y0=0, y1=0,
+            line=dict(color="black", width=2),
+            layer="below"  # Ensures the line is in the background
+        )
+
         # Get unique pitch types
         unique_pitch_types = movement_data['TaggedPitchType'].unique()
 
         for pitch_type in unique_pitch_types:
-            pitch_type_data = movement_data[movement_data['TaggedPitchType'] == pitch_type]
+            pitch_data = movement_data[movement_data['TaggedPitchType'] == pitch_type]
 
             # Round numeric values for hover info
-            pitch_type_data['RelSpeed'] = pitch_type_data['RelSpeed'].round(1)
-            pitch_type_data['InducedVertBreak'] = pitch_type_data['InducedVertBreak'].round(1)
-            pitch_type_data['HorzBreak'] = pitch_type_data['HorzBreak'].round(1)
+            pitch_data['RelSpeed'] = pitch_data['RelSpeed'].round(1)
+            pitch_data['InducedVertBreak'] = pitch_data['InducedVertBreak'].round(1)
+            pitch_data['HorzBreak'] = pitch_data['HorzBreak'].round(1)
 
-            # Plot scatter points with hover data
+            # Add scatter points **AFTER** the border lines to keep them on top
             fig.add_trace(go.Scatter(
-                x=pitch_type_data['HorzBreak'],
-                y=pitch_type_data['InducedVertBreak'],
+                x=pitch_data['HorzBreak'],
+                y=pitch_data['InducedVertBreak'],
                 mode='markers',
                 name=pitch_type,
                 marker=dict(
-                    size=8,
+                    size=9,  # Slightly larger for better visibility
                     color=plotly_color_dict.get(pitch_type, 'black'),
-                    opacity=0.7
+                    opacity=0.8,
+                    line=dict(width=1, color="white")  # White edge for better contrast
                 ),
-                text=pitch_type_data.apply(
+                text=pitch_data.apply(
                     lambda row: f"Date: {row['Date']}<br>RelSpeed: {row['RelSpeed']}<br>iVB: {row['InducedVertBreak']}<br>HB: {row['HorzBreak']}",
                     axis=1
-                ),  # Hover info
-                hoverinfo='text'  # Display the custom hover text
+                ),
+                hoverinfo='text'
             ))
-
-        # Add a **vertical** line at x=0 (center)
-        fig.add_shape(
-            type="line",
-            x0=0, x1=0, y0=-25, y1=25,
-            line=dict(color="black", width=2)
-        )
-
-        # Add a **horizontal** line at y=0 (center)
-        fig.add_shape(
-            type="line",
-            x0=-25, x1=25, y0=0, y1=0,
-            line=dict(color="black", width=2)
-        )
 
         # Customize layout
         fig.update_layout(
@@ -845,6 +846,7 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
 
     except Exception as e:
         st.error(f"An error occurred while generating the pitch movement graph: {e}")
+
 
 
 
