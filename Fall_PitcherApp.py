@@ -749,7 +749,10 @@ color_dict = {
 
 
 
-def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
+import plotly.express as px
+import plotly.graph_objects as go
+
+def plot_pitch_movement_plotly(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
         # Filter data based on the selected parameters
         pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date)
@@ -759,70 +762,77 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
             return
 
         # Ensure InducedVertBreak and HorizontalBreak are available for plotting
-        movement_data = pitcher_data.dropna(subset=['InducedVertBreak', 'HorzBreak'])
+        movement_data = pitcher_data.dropna(subset=['InducedVertBreak', 'HorzBreak', 'RelSpeed', 'Date'])
 
         if movement_data.empty:
             st.write("No pitch movement data available for plotting.")
             return
 
-        # Set up the figure for pitch movement
-        plt.figure(figsize=(10, 10))
-        ax = plt.gca()
+        # Convert Date column to string format for hover display
+        movement_data['Date'] = movement_data['Date'].astype(str)
 
-        # Set axis limits and labels
-        ax.set_xlim(-25, 25)
-        ax.set_ylim(-25, 25)
-        ax.set_xlabel("Horizontal Break (inches)", fontsize=14)
-        ax.set_ylabel("Induced Vertical Break (inches)", fontsize=14)
+        # Define color dictionary for pitch types
+        plotly_color_dict = {
+            'Fastball': 'royalblue',
+            'Sinker': 'goldenrod',
+            'Slider': 'mediumseagreen',
+            'Curveball': 'firebrick',
+            'Cutter': 'darkorange',
+            'ChangeUp': 'mediumpurple',
+            'Splitter': 'teal',
+            'Unknown': 'black',
+            'Other': 'black'
+        }
 
-        # Add grid lines every 5 units
-        ax.xaxis.set_major_locator(plt.MultipleLocator(5))
-        ax.yaxis.set_major_locator(plt.MultipleLocator(5))
-        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+        # Create a scatter plot using Plotly
+        fig = go.Figure()
 
-        # Add bold black lines through the origin
-        plt.axhline(0, color='black', linewidth=2, zorder=1)  # Horizontal line through the origin
-        plt.axvline(0, color='black', linewidth=2, zorder=1)  # Vertical line through the origin
-
-        # Plot each pitch, colored by pitch type, with a higher z-order
+        # Get unique pitch types
         unique_pitch_types = movement_data['TaggedPitchType'].unique()
+
         for pitch_type in unique_pitch_types:
-            pitch_type_data = movement_data[movement_data['TaggedPitchType'] == pitch_type]
+            pitch_data = movement_data[movement_data['TaggedPitchType'] == pitch_type]
 
-            # Set color based on pitch type, default to black for unknown types
-            color = color_dict.get(pitch_type, 'black')
+            # Get color for pitch type
+            color = plotly_color_dict.get(pitch_type, 'black')
 
-            # Plot individual pitches
-            plt.scatter(
-                pitch_type_data['HorzBreak'],
-                pitch_type_data['InducedVertBreak'],
-                label=pitch_type,
-                color=color,
-                s=70,  # Adjust size of the markers
-                alpha=0.7,
-                zorder=2  # Higher z-order to plot above the lines
-            )
+            # Add scatter points with hover information
+            fig.add_trace(go.Scatter(
+                x=pitch_data['HorzBreak'],
+                y=pitch_data['InducedVertBreak'],
+                mode='markers',
+                name=pitch_type,
+                marker=dict(
+                    size=8,
+                    color=color,
+                    opacity=0.7
+                ),
+                hovertemplate=(
+                    f"<b>Pitch Type:</b> {pitch_type}<br>"
+                    "Date: %{customdata[0]}<br>"
+                    "Velocity: %{customdata[1]} mph<br>"
+                    "iVB: %{customdata[2]} inches<br>"
+                    "HB: %{customdata[3]} inches<br>"
+                ),
+                customdata=pitch_data[['Date', 'RelSpeed', 'InducedVertBreak', 'HorzBreak']].values
+            ))
 
-            # Calculate the mean and standard deviation for clustering
-            mean_horz = pitch_type_data['HorzBreak'].mean()
-            mean_vert = pitch_type_data['InducedVertBreak'].mean()
-            std_dev = np.sqrt(
-                pitch_type_data['HorzBreak'].std()**2 + pitch_type_data['InducedVertBreak'].std()**2
-            )
+        # Update layout with limits and labels
+        fig.update_layout(
+            title=f"{pitcher_name} Pitch Movement (iVB vs HB)",
+            xaxis=dict(title="Horizontal Break (inches)", range=[-25, 25]),
+            yaxis=dict(title="Induced Vertical Break (inches)", range=[-25, 25]),
+            template="plotly_white",
+            width=800,
+            height=700
+        )
 
-            # Draw a circle to represent the cluster area
-            circle = plt.Circle((mean_horz, mean_vert), std_dev, color=color, alpha=0.3, zorder=1)
-            ax.add_patch(circle)
-
-        # Add a legend for pitch types
-        plt.legend(title="Pitch Type", bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
-
-        # Display the plot in Streamlit
-        st.subheader(f"Pitch Movement Graph for {pitcher_name}")
-        st.pyplot(plt)
+        # Show plot in Streamlit
+        st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
         st.error(f"An error occurred while generating the pitch movement graph: {e}")
+
 
 
 
@@ -1236,7 +1246,8 @@ generate_batted_ball_table(
 )
 
 
-plot_pitch_movement(
+# Call the function in your Streamlit app
+plot_pitch_movement_plotly(
     pitcher_name, 
     batter_side, 
     strikes, 
@@ -1246,6 +1257,7 @@ plot_pitch_movement(
     start_date, 
     end_date
 )
+
 
 # Generate rolling line graphs based on selected metrics and pitch types
 generate_rolling_line_graphs(
