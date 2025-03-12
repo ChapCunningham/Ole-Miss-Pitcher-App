@@ -754,6 +754,8 @@ import plotly.graph_objects as go
 
 import plotly.graph_objects as go
 
+import plotly.graph_objects as go
+
 def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
         # Filter data based on selected parameters
@@ -791,13 +793,21 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
             type="line",
             x0=0, x1=0, y0=-25, y1=25,
             line=dict(color="black", width=2),
-            layer="below"  # Ensures the line is in the background
+            layer="below"  # Keeps the line in the background
         )
         fig.add_shape(
             type="line",
             x0=-25, x1=25, y0=0, y1=0,
             line=dict(color="black", width=2),
-            layer="below"  # Ensures the line is in the background
+            layer="below"  # Keeps the line in the background
+        )
+
+        # Ensure the black x-axis line stays visible
+        fig.update_xaxes(
+            zeroline=True, zerolinewidth=2, zerolinecolor='black'  # Forces the x-axis black line
+        )
+        fig.update_yaxes(
+            zeroline=True, zerolinewidth=2, zerolinecolor='black'  # Forces the y-axis black line
         )
 
         # Get unique pitch types
