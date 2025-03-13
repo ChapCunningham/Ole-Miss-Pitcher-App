@@ -843,8 +843,8 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
         # Customize layout
         fig.update_layout(
             title=f"Pitch Movement for {pitcher_name}",
-            xaxis=dict(title="Horizontal Break (inches)", range=[-25, 25]),
-            yaxis=dict(title="Induced Vertical Break (inches)", range=[-25, 25]),
+            xaxis=dict(title="Horizontal Break (inches)", range=[-30, 30]),
+            yaxis=dict(title="Induced Vertical Break (inches)", range=[-30, 30]),
             template="plotly_white",
             showlegend=True,
             width=800,
