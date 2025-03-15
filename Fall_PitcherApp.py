@@ -985,14 +985,24 @@ def generate_rolling_line_graphs(
     rolling_df, pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date
 ):
     try:
-        # Filter only by pitcher name (retain full dataset for rolling averages)
-        filtered_data = rolling_df[rolling_df['playerFullName'] == pitcher_name]
+        # Sidebar toggle to choose between Full Rolling or Pitch-by-Pitch
+        if date_filter_option == "Single Date":
+            view_option = st.sidebar.radio(
+                "Select Rolling View:",
+                options=["Full Dataset Rolling Averages", "Pitch-by-Pitch (Single Date)"],
+                index=0  # Default to full dataset
+            )
+        else:
+            view_option = "Full Dataset Rolling Averages"  # Default for other date selections
 
-        if filtered_data.empty:
+        # Filter by pitcher name only (keep full data for rolling averages)
+        full_filtered_data = rolling_df[rolling_df['playerFullName'] == pitcher_name]
+
+        if full_filtered_data.empty:
             st.write("No data available for the selected pitcher.")
             return
 
-        # Ensure numeric conversion for the selected metrics
+        # Ensure numeric conversion for selected metrics
         numeric_columns = {
             'Vel': 'Velocity',
             'IndVertBrk': 'iVB',
@@ -1003,18 +1013,11 @@ def generate_rolling_line_graphs(
             'CLASS+': 'CLASS+',
         }
         for col in numeric_columns.keys():
-            filtered_data[col] = pd.to_numeric(filtered_data[col], errors='coerce')
+            full_filtered_data[col] = pd.to_numeric(full_filtered_data[col], errors='coerce')
 
-        # Convert Date column to datetime
-        filtered_data['Date'] = pd.to_datetime(filtered_data['Date'], errors='coerce')
-        filtered_data = filtered_data.dropna(subset=['Date'])
-
-        # Group data by date and pitch type
-        grouped_data = (
-            filtered_data.groupby(['Date', 'PitchType'])
-            .agg({col: 'mean' for col in numeric_columns.keys()})
-            .reset_index()
-        )
+        # Convert Date column to datetime and drop NaN dates
+        full_filtered_data['Date'] = pd.to_datetime(full_filtered_data['Date'], errors='coerce')
+        full_filtered_data = full_filtered_data.dropna(subset=['Date'])
 
         # Rename pitch types for clarity
         pitch_type_mapping = {
@@ -1026,13 +1029,10 @@ def generate_rolling_line_graphs(
             "FS": "Splitter",
             "CH": "ChangeUp",
         }
-        grouped_data['PitchType'] = grouped_data['PitchType'].map(pitch_type_mapping)
-
-        # Sort data by date to ensure rolling calculations are sequential
-        grouped_data = grouped_data.sort_values(by="Date")
+        full_filtered_data['PitchType'] = full_filtered_data['PitchType'].map(pitch_type_mapping)
 
         # Get unique pitch types
-        unique_pitch_types = grouped_data['PitchType'].unique()
+        unique_pitch_types = full_filtered_data['PitchType'].unique()
 
         # Define color mapping
         color_dict = {
@@ -1047,62 +1047,103 @@ def generate_rolling_line_graphs(
             'Other': 'black'
         }
 
-        # Plot rolling line graphs
-        st.subheader("Rolling Averages Across Full Database (While Viewing Selected Data)")
-
-        for metric, metric_label in numeric_columns.items():
-            fig = px.line(
-                grouped_data,
-                x="Date",
-                y=metric,
-                color="PitchType",
-                title=f"{metric_label} Rolling Averages by Pitch Type (Full Dataset)",
-                labels={"Date": "Date", metric: metric_label, "PitchType": "Pitch Type"},
-                color_discrete_map=color_dict,  # Match colors with color_dict
-                hover_data={"Date": "|%B %d, %Y", metric: ":.2f"},  # Format hover information
+        ### **Option 1: Full Dataset Rolling Averages**
+        if view_option == "Full Dataset Rolling Averages":
+            # Sort data by date for proper rolling trend
+            rolling_data = (
+                full_filtered_data.groupby(['Date', 'PitchType'])
+                .agg({col: 'mean' for col in numeric_columns.keys()})
+                .reset_index()
+                .sort_values(by="Date")
             )
 
-            # Add scatter points for each date with data
-            for pitch_type in unique_pitch_types:
-                pitch_data = grouped_data[grouped_data['PitchType'] == pitch_type]
-                fig.add_scatter(
-                    x=pitch_data['Date'],
-                    y=pitch_data[metric],
-                    mode='markers',
-                    marker=dict(
-                        size=8,
-                        color=color_dict.get(pitch_type, 'black')  # Match marker color to line color
-                    ),
-                    name=f"{pitch_type} Dots",  # To differentiate scatter points in the legend
-                    showlegend=False  # Hide extra legends for scatter points
+            st.subheader("Rolling Averages Across Full Database")
+
+            for metric, metric_label in numeric_columns.items():
+                fig = px.line(
+                    rolling_data,
+                    x="Date",
+                    y=metric,
+                    color="PitchType",
+                    title=f"{metric_label} Rolling Averages by Pitch Type (Full Dataset)",
+                    labels={"Date": "Date", metric: metric_label, "PitchType": "Pitch Type"},
+                    color_discrete_map=color_dict,
+                    hover_data={"Date": "|%B %d, %Y", metric: ":.2f"},
                 )
 
-            # Highlight the selected date range if applicable
-            if date_filter_option == "Single Date" and selected_date:
-                selected_datetime = pd.to_datetime(selected_date)
-                fig.add_vrect(
-                    x0=selected_datetime, x1=selected_datetime,
-                    fillcolor="gray", opacity=0.3, line_width=0
-                )
-            elif date_filter_option == "Date Range" and start_date and end_date:
-                start_datetime = pd.to_datetime(start_date)
-                end_datetime = pd.to_datetime(end_date)
-                fig.add_vrect(
-                    x0=start_datetime, x1=end_datetime,
-                    fillcolor="gray", opacity=0.3, line_width=0
+                # Highlight selected date(s)
+                if date_filter_option == "Single Date" and selected_date:
+                    selected_datetime = pd.to_datetime(selected_date)
+                    fig.add_vrect(x0=selected_datetime, x1=selected_datetime, fillcolor="gray", opacity=0.3, line_width=0)
+                elif date_filter_option == "Date Range" and start_date and end_date:
+                    start_datetime, end_datetime = pd.to_datetime(start_date), pd.to_datetime(end_date)
+                    fig.add_vrect(x0=start_datetime, x1=end_datetime, fillcolor="gray", opacity=0.3, line_width=0)
+
+                fig.update_layout(
+                    xaxis_title="Date",
+                    yaxis_title=metric_label,
+                    legend_title="Pitch Type",
+                    template="plotly_white",
+                    hovermode="x unified",
                 )
 
-            # Customize layout
-            fig.update_layout(
-                xaxis_title="Date",
-                yaxis_title=metric_label,
-                legend_title="Pitch Type",
-                template="plotly_white",
-                hovermode="x unified",  # Show all hover info on the same vertical line
-            )
+                st.plotly_chart(fig, use_container_width=True)
 
-            # Display the plot in Streamlit
-            st.plotly_chart(fig, use_container_width=True)
+        ### **Option 2: Pitch-by-Pitch View (Only for Single Date)**
+        elif view_option == "Pitch-by-Pitch (Single Date)":
+            # Filter data by selected date
+            selected_datetime = pd.to_datetime(selected_date)
+            pitch_data = full_filtered_data[full_filtered_data['Date'].dt.date == selected_datetime.date()]
+
+            if pitch_data.empty:
+                st.write("No data available for the selected date.")
+                return
+
+            # Ensure PitchNo is numeric and sort
+            pitch_data['PitchNo'] = pd.to_numeric(pitch_data['PitchNo'], errors='coerce')
+            pitch_data = pitch_data.dropna(subset=['PitchNo']).sort_values(by="PitchNo")
+
+            st.subheader(f"Pitch-by-Pitch View for {selected_date.strftime('%B %d, %Y')}")
+
+            for metric, metric_label in numeric_columns.items():
+                fig = px.line(
+                    pitch_data,
+                    x="PitchNo",
+                    y=metric,
+                    color="PitchType",
+                    title=f"{metric_label} Pitch-by-Pitch",
+                    labels={"PitchNo": "Pitch Number", metric: metric_label, "PitchType": "Pitch Type"},
+                    color_discrete_map=color_dict,
+                    hover_data={"PitchNo": ":.0f", metric: ":.2f"},
+                )
+
+                # Scatter points for each pitch
+                for pitch_type in unique_pitch_types:
+                    pitch_subset = pitch_data[pitch_data['PitchType'] == pitch_type]
+                    fig.add_scatter(
+                        x=pitch_subset['PitchNo'],
+                        y=pitch_subset[metric],
+                        mode='markers',
+                        marker=dict(
+                            size=8,
+                            color=color_dict.get(pitch_type, 'black')
+                        ),
+                        name=f"{pitch_type} Dots",
+                        showlegend=False
+                    )
+
+                # Set x-axis to match smallest to largest pitch number for the day
+                fig.update_xaxes(range=[pitch_data['PitchNo'].min() - 1, pitch_data['PitchNo'].max() + 1])
+
+                fig.update_layout(
+                    xaxis_title="Pitch Number",
+                    yaxis_title=metric_label,
+                    legend_title="Pitch Type",
+                    template="plotly_white",
+                    hovermode="x unified",
+                )
+
+                st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
         st.error(f"An error occurred while generating rolling line graphs: {e}")
