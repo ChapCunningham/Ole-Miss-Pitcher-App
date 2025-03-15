@@ -995,7 +995,7 @@ def generate_rolling_line_graphs(
         else:
             view_option = "Full Dataset Rolling Averages"  # Default for other date selections
 
-        # Filter by pitcher name only (keep full data for rolling averages)
+        # Filter only by pitcher name (keep full data for rolling averages)
         full_filtered_data = rolling_df[rolling_df['playerFullName'] == pitcher_name]
 
         if full_filtered_data.empty:
@@ -1070,6 +1070,22 @@ def generate_rolling_line_graphs(
                     color_discrete_map=color_dict,
                     hover_data={"Date": "|%B %d, %Y", metric: ":.2f"},
                 )
+
+                # Scatter points for each date
+                for pitch_type in unique_pitch_types:
+                    pitch_subset = rolling_data[rolling_data['PitchType'] == pitch_type]
+                    fig.add_scatter(
+                        x=pitch_subset['Date'],
+                        y=pitch_subset[metric],
+                        mode='markers',
+                        marker=dict(
+                            size=6,
+                            color=color_dict.get(pitch_type, 'black'),
+                            opacity=0.7
+                        ),
+                        name=f"{pitch_type} Dots",
+                        showlegend=False
+                    )
 
                 # Highlight selected date(s)
                 if date_filter_option == "Single Date" and selected_date:
