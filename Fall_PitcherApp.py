@@ -985,37 +985,12 @@ def generate_rolling_line_graphs(
     rolling_df, pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date
 ):
     try:
-        # Filter data based on the provided parameters
+        # Filter only by pitcher name (retain full dataset for rolling averages)
         filtered_data = rolling_df[rolling_df['playerFullName'] == pitcher_name]
 
         if filtered_data.empty:
             st.write("No data available for the selected pitcher.")
             return
-
-        # Apply date filtering
-        if date_filter_option == "Single Date" and selected_date:
-            filtered_data = filtered_data[filtered_data['Date'] == pd.to_datetime(selected_date)]
-        elif date_filter_option == "Date Range" and start_date and end_date:
-            filtered_data = filtered_data[
-                (filtered_data['Date'] >= pd.to_datetime(start_date)) &
-                (filtered_data['Date'] <= pd.to_datetime(end_date))
-            ]
-
-        if filtered_data.empty:
-            st.write("No data available for the selected date range.")
-            return
-
-        # Rename pitch types for clarity
-        pitch_type_mapping = {
-            "4S": "Fastball",
-            "SI": "Sinker",
-            "FC": "Cutter",
-            "SL": "Slider",
-            "CU": "Curveball",
-            "FS": "Splitter",
-            "CH": "ChangeUp",
-        }
-        filtered_data['PitchType'] = filtered_data['PitchType'].map(pitch_type_mapping)
 
         # Ensure numeric conversion for the selected metrics
         numeric_columns = {
@@ -1030,6 +1005,10 @@ def generate_rolling_line_graphs(
         for col in numeric_columns.keys():
             filtered_data[col] = pd.to_numeric(filtered_data[col], errors='coerce')
 
+        # Convert Date column to datetime
+        filtered_data['Date'] = pd.to_datetime(filtered_data['Date'], errors='coerce')
+        filtered_data = filtered_data.dropna(subset=['Date'])
+
         # Group data by date and pitch type
         grouped_data = (
             filtered_data.groupby(['Date', 'PitchType'])
@@ -1037,10 +1016,25 @@ def generate_rolling_line_graphs(
             .reset_index()
         )
 
+        # Rename pitch types for clarity
+        pitch_type_mapping = {
+            "4S": "Fastball",
+            "SI": "Sinker",
+            "FC": "Cutter",
+            "SL": "Slider",
+            "CU": "Curveball",
+            "FS": "Splitter",
+            "CH": "ChangeUp",
+        }
+        grouped_data['PitchType'] = grouped_data['PitchType'].map(pitch_type_mapping)
+
+        # Sort data by date to ensure rolling calculations are sequential
+        grouped_data = grouped_data.sort_values(by="Date")
+
         # Get unique pitch types
         unique_pitch_types = grouped_data['PitchType'].unique()
 
-        # Map colors using the color_dict
+        # Define color mapping
         color_dict = {
             'Fastball': 'blue',
             'Sinker': 'gold',
@@ -1054,7 +1048,7 @@ def generate_rolling_line_graphs(
         }
 
         # Plot rolling line graphs
-        st.subheader("Interactive Rolling Averages by Pitch Type")
+        st.subheader("Rolling Averages Across Full Database (While Viewing Selected Data)")
 
         for metric, metric_label in numeric_columns.items():
             fig = px.line(
@@ -1062,7 +1056,7 @@ def generate_rolling_line_graphs(
                 x="Date",
                 y=metric,
                 color="PitchType",
-                title=f"{metric_label} Rolling Averages by Pitch Type",
+                title=f"{metric_label} Rolling Averages by Pitch Type (Full Dataset)",
                 labels={"Date": "Date", metric: metric_label, "PitchType": "Pitch Type"},
                 color_discrete_map=color_dict,  # Match colors with color_dict
                 hover_data={"Date": "|%B %d, %Y", metric: ":.2f"},  # Format hover information
@@ -1081,6 +1075,21 @@ def generate_rolling_line_graphs(
                     ),
                     name=f"{pitch_type} Dots",  # To differentiate scatter points in the legend
                     showlegend=False  # Hide extra legends for scatter points
+                )
+
+            # Highlight the selected date range if applicable
+            if date_filter_option == "Single Date" and selected_date:
+                selected_datetime = pd.to_datetime(selected_date)
+                fig.add_vrect(
+                    x0=selected_datetime, x1=selected_datetime,
+                    fillcolor="gray", opacity=0.3, line_width=0
+                )
+            elif date_filter_option == "Date Range" and start_date and end_date:
+                start_datetime = pd.to_datetime(start_date)
+                end_datetime = pd.to_datetime(end_date)
+                fig.add_vrect(
+                    x0=start_datetime, x1=end_datetime,
+                    fillcolor="gray", opacity=0.3, line_width=0
                 )
 
             # Customize layout
