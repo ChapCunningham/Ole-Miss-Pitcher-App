@@ -63,7 +63,7 @@ winter_rolling_df['Season'] = 'Winter'
 
 # Ensure numeric conversion for the columns where aggregation will be done
 numeric_columns = ['RelSpeed', 'SpinRate', 'Tilt', 'RelHeight', 'RelSide', 
-                   'Extension', 'InducedVertBreak', 'HorzBreak', 'VertApprAngle', 'ExitSpeed']
+                   'Extension', 'InducedVertBreak', 'HorzBreak', 'VertApprAngle', 'ExitSpeed','VertRelAngle']
 
 # Coerce non-numeric values to NaN
 for col in numeric_columns:
@@ -516,7 +516,8 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             RelHeight=('RelHeight', 'mean'),
             RelSide=('RelSide', 'mean'),
             Extension=('Extension', 'mean'),
-            VertApprAngle=('VertApprAngle', 'mean')
+            VertApprAngle=('VertApprAngle', 'mean'),
+            VertRelAngle=('VertRelAngle', 'mean')
         ).reset_index()
 
         # Rename columns for clarity
@@ -529,12 +530,13 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             'RelHeight': 'RelH',
             'RelSide': 'RelS',
             'Extension': 'Ext',
-            'VertApprAngle': 'VAA'
+            'VertApprAngle': 'VAA',
+            'VertRelAngle': 'VRA'
         }
         grouped_data = grouped_data.rename(columns=rename_columns)
 
         # Convert all numeric columns to numeric format and coerce errors to NaN
-        numeric_columns = ['Velo', 'iVB', 'HB', 'Spin', 'RelH', 'RelS', 'Ext', 'VAA']
+        numeric_columns = ['Velo', 'iVB', 'HB', 'Spin', 'RelH', 'RelS', 'Ext', 'VAA','VRA']
         for col in numeric_columns:
             grouped_data[col] = pd.to_numeric(grouped_data[col], errors='coerce')
 
