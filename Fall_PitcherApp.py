@@ -1330,3 +1330,466 @@ with tab1:
 
 
 
+
+def draw_single_game_report(pitcher_name, input_game_date, inngings_pitched, pitch_data, class_data):
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+    import matplotlib.gridspec as gridspec
+    import numpy as np
+    import pandas as pd
+    from matplotlib.colors import to_hex, to_rgb
+    from matplotlib import cm
+    from matplotlib.lines import Line2D
+
+    # === Helper functions ===
+    def custom_blend_white_center(value, vmin, mid, vmax, low_color, high_color):
+        if pd.isna(value):
+            return "#D3D3D3"
+        white_rgb = np.array([1.0, 1.0, 1.0])
+        val = float(value)
+        if val <= mid:
+            norm = (val - vmin) / (mid - vmin)
+            norm = min(max(norm, 0), 1)
+            base_rgb = np.array(to_rgb(low_color))
+            blended_rgb = base_rgb + (white_rgb - base_rgb) * norm
+        else:
+            norm = (val - mid) / (vmax - mid)
+            norm = min(max(norm, 0), 1)
+            base_rgb = np.array(to_rgb(high_color))
+            blended_rgb = white_rgb + (base_rgb - white_rgb) * norm
+        return to_hex(blended_rgb)
+
+    def traffic_light_fip_color(fip):
+        try:
+            fip = float(str(fip).replace('%', '').strip())
+            if np.isnan(fip): return "#D3D3D3"
+        except: return "#D3D3D3"
+        if fip <= 6:
+            ratio = np.clip(fip / 6, 0, 1)
+            red, green = ratio, 1.0
+        else:
+            ratio = np.clip((fip - 6) / 4, 0, 1)
+            red, green = 1.0, 1.0 - ratio
+        return to_hex((np.clip(red, 0, 1), np.clip(green, 0, 1), 0.0))
+
+    def get_contrast_text_color(bg_hex):
+        r, g, b = to_rgb(bg_hex)
+        brightness = (r*299 + g*587 + b*114) / 1000
+        return 'black' if brightness > 0.6 else 'white'
+
+    def format_value(val, col=None):
+        if col in ["SwStr%", "HardHit%", "% Thrown"]:
+            return f"{val}%" if isinstance(val, (int, float)) else val
+        return val
+
+    # === Preprocess data ===
+    parsed_game_date = pd.to_datetime(input_game_date)
+    df = pitch_data[(pitch_data['Pitcher'] == pitcher_name) & (pitch_data['Date'] == parsed_game_date)]
+    df_class = class_data[(class_data['playerFullName'] == pitcher_name) & (class_data['Date'] == parsed_game_date)]
+
+    if df.empty:
+        fig, ax = plt.subplots()
+        ax.text(0.5, 0.5, "No data available", ha='center', va='center')
+        ax.axis('off')
+        return fig
+
+    # === Calculate basic stats ===
+    IP = inngings_pitched
+    PA = len(df)
+    R = df['RunsScored'].sum()
+    ER = df['EarnedRuns'].sum() if 'EarnedRuns' in df.columns else R
+    H = df[df['PlayResult'].isin(["Single", "Double", "Triple", "HomeRun"])].shape[0]
+    K = df[df['KorBB'] == 'Strikeout'].shape[0]
+    BB = df[df['KorBB'] == 'Walk'].shape[0]
+    HBP = df[df['PitchCall'] == 'HitByPitch'].shape[0]
+    HR = df[df['TaggedHitType'] == 'HomeRun'].shape[0]
+    swings = df[df['PitchCall'].isin(['SwingingStrike', 'SwingingStrikeBlocked', 'Foul', 'InPlay'])]
+    swstr = df[df['PitchCall'].isin(['SwingingStrike', 'SwingingStrikeBlocked'])]
+    swstr_percent = round(100 * len(swstr) / len(swings), 1) if len(swings) > 0 else 0
+    balls_in_play = df[df['PitchCall'] == 'InPlay']
+    hard_hits = balls_in_play[balls_in_play['ExitSpeed'] >= 95]
+    hard_hit_percent = round(100 * len(hard_hits) / len(balls_in_play), 1) if len(balls_in_play) > 0 else 0
+    avg_class = int(df_class['CLASS+'].mean()) if not df_class.empty else 100
+    fip_constant = 3.1
+    FIP = round((13 * HR + 3 * (BB + HBP) - 2 * K) / IP + fip_constant, 2) if IP > 0 else np.nan
+
+    # === Begin plotting ===
+    fig = plt.figure(figsize=(18, 12))
+    gs = gridspec.GridSpec(5, 3, height_ratios=[0.3, 2.2, 0.15, 2.5, 1.0])
+
+    opponent = df['BatterTeam'].iloc[0] if 'BatterTeam' in df.columns and not df.empty else "Opponent"
+    ax_title = fig.add_subplot(gs[0, :])
+    ax_title.axis('off')
+    ax_title.set_title(
+        f"{pitcher_name}  |  {parsed_game_date.date()} vs {opponent}",
+        fontsize=20, weight='bold', loc='left', pad=20
+    )
+
+    box_score_data = [
+        ["IP", IP], ["P", PA], ["R", R], ["ER", ER], ["H", H],
+        ["K", K], ["BB", BB], ["HBP", HBP], ["HR", HR],
+        ["CLASS+", avg_class], ["SwStr%", f"{swstr_percent}%"], ["HardHit%", f"{hard_hit_percent}%"], ["FIP", FIP]
+    ]
+
+    cell_values = [format_value(val) for _, val in box_score_data]
+    col_headers = [label for label, _ in box_score_data]
+
+    table = ax_title.table(
+        cellText=[cell_values],
+        colLabels=col_headers,
+        loc='center',
+        cellLoc='center'
+    )
+    table.auto_set_font_size(False)
+    table.set_fontsize(12)
+    table.scale(1.1, 1.3)
+
+    # === Continue plotting more content (release point, movement, heatmaps, etc.) ===
+    # Keep extending with other axes (e.g., ax1 = fig.add_subplot(gs[1, 0]), etc.)
+    pitch_colors = {
+    "Fastball": "#1f77b4",     # Blue
+    "Slider": "#2ca02c",       # Green
+    "Curveball": "#d62728",    # Red
+    "ChangeUp": "#9467bd",     # Purple
+    "Sinker": "#ffdd57",       # Yellow
+    "Cutter": "#ff7f0e",       # Orange
+    "Splitter": "#17becf"      # Teal
+}
+fastball_blue = pitch_colors["Fastball"]
+curveball_red = pitch_colors["Curveball"]
+for j, label in enumerate(col_headers):
+    cell = table[1, j]
+    val = box_score_data[j][1]
+
+    # Convert % strings to float if needed
+    if isinstance(val, str) and val.endswith('%'):
+        val = float(val.replace('%', ''))
+
+    if label == "CLASS+":
+        face = custom_blend_white_center(val, 70, 100, 120, fastball_blue, curveball_red)
+    elif label == "SwStr%":
+        face = custom_blend_white_center(val, 0, 13, 25, fastball_blue, curveball_red)
+    elif label == "HardHit%":
+        face = custom_blend_white_center(val, 0, 45, 100, curveball_red, fastball_blue)
+    elif label == 'FIP':
+        face = traffic_light_fip_color(val)
+    else:
+        continue
+
+    cell.set_facecolor(face)
+    cell.set_text_props(color=get_contrast_text_color(face))
+
+
+table.auto_set_font_size(False)
+table.set_fontsize(12)
+table.scale(1.1, 1.3)
+
+
+
+
+
+# === Release Point Plot (color-coded with mean markers) ===
+ax1 = fig.add_subplot(gs[1, 0])
+pitch_colors = {
+    "Fastball": "#1f77b4",     # Blue
+    "Slider": "#2ca02c",       # Green
+    "Curveball": "#d62728",    # Red
+    "ChangeUp": "#9467bd",     # Purple
+    "Sinker": "#ffdd57",       # Yellow
+    "Cutter": "#ff7f0e",       # Orange
+    "Splitter": "#17becf"      # Teal
+}
+
+
+for pitch_type in df['TaggedPitchType'].unique():
+    subset = df[df['TaggedPitchType'] == pitch_type]
+    color = pitch_colors.get(pitch_type, "gray")
+
+    # Plot individual pitches with lower opacity
+    ax1.scatter(subset['RelSide'], subset['RelHeight'], color=color, alpha=0.4, label=pitch_type, s=25)
+
+    # Plot average release point with full opacity + black edge
+    avg_rel_side = subset['RelSide'].mean()
+    avg_rel_height = subset['RelHeight'].mean()
+    ax1.scatter(avg_rel_side, avg_rel_height, color=color, edgecolor='black', linewidth=1.2, s=100, zorder=5)
+
+ax1.set_title("Release Point")
+ax1.set_xlabel("RelSide")
+ax1.set_ylabel("RelHeight")
+ax1.axhline(0, color='gray', lw=0.5)
+ax1.axvline(0, color='gray', lw=0.5)
+ax1.set_ylim(3,7)
+ax1.set_xlim(-3.5,3.5)
+
+# === Movement Profile (updated with grid and averaged markers) ===
+ax2 = fig.add_subplot(gs[1, 1])
+
+# Draw grid lines first so they appear beneath points
+for i in range(-30, 35, 5):  # horizontal gray grid lines
+    ax2.axhline(i, color='gray', linestyle='--', linewidth=0.5, zorder=0)
+    ax2.axvline(i, color='gray', linestyle='--', linewidth=0.5, zorder=0)
+
+# Origin lines (0,0) in black
+ax2.axhline(0, color='black', linewidth=1, zorder=1)
+ax2.axvline(0, color='black', linewidth=1, zorder=1)
+
+# Plot pitches
+for pitch in df['TaggedPitchType'].unique():
+    subset = df[df['TaggedPitchType'] == pitch]
+    color = pitch_colors.get(pitch, "gray")
+
+    # Faded individual points
+    ax2.scatter(subset['HorzBreak'], subset['InducedVertBreak'],
+                color=color, alpha=0.4, label=pitch, s=25, zorder=2)
+
+    # Average marker with black outline
+    avg_x = subset['HorzBreak'].mean()
+    avg_y = subset['InducedVertBreak'].mean()
+    ax2.scatter(avg_x, avg_y, color=color, edgecolor='black',
+                linewidth=1.2, s=100, zorder=3)
+
+ax2.set_title("Movement Profile")
+ax2.set_xlabel("Horz Break")
+ax2.set_ylabel("IVB")
+ax2.set_xlim(-30, 30)
+ax2.set_ylim(-30, 30)
+
+# === Rolling CLASS+ BY PITCH TYPE ===
+ax3 = fig.add_subplot(gs[1, 2])
+pitch_types = df_class['PitchType'].unique()
+
+rolling_colors = {
+    "4S": "#1f77b4",     # Blue
+    "SL": "#2ca02c",       # Green
+    "CU": "#d62728",    # Red
+    "CH": "#9467bd",     # Purple
+    "SI": "#ffdd57",       # Yellow
+    "FC": "#ff7f0e",       # Orange
+    "FS": "#17becf"      # Teal
+}
+
+for pitch_type in pitch_types:
+    subset = df_class[df_class['PitchType'] == pitch_type].reset_index(drop=True)
+    if len(subset) >= 5:
+        rolling_avg = subset['CLASS+'].rolling(5).mean()
+        color = rolling_colors.get(pitch_type, "gray")
+        ax3.plot(rolling_avg, label=pitch_type, color=color, linewidth=2)
+
+
+ax3.set_ylim(70, 130)
+ax3.set_title("Rolling 5-Pitch CLASS+ by Type")
+ax3.legend(fontsize=7, loc="lower right")
+
+
+# === Strike Zone Visuals (3 for LHH, 3 for RHH) ===
+from matplotlib import patches
+
+# Plot containers
+ax_zones = fig.add_subplot(gs[3, :])  # Full width for both sides
+ax_zones.axis('off')
+
+
+# Strike zone box dimensions
+strike_zone_width = 17 / 12  # 1.41667 feet
+zone_params = {'x': -strike_zone_width / 2, 'y': 1.5, 'width': strike_zone_width, 'height': 3.3775 - 1.5}
+x_limits = [-2.5, 2.5]
+y_limits = [0.5, 4.5]
+
+# Subplot positions (relative to LHH/RHH subplot area)
+zone_titles = ['Frequency', 'Whiff', 'HardHit']
+zone_data_filters = [
+    lambda df: df,  # Frequency
+    lambda df: df[df['PitchCall'] == 'StrikeSwinging'],  # Whiff
+    lambda df: df[(df['PitchCall'] == 'InPlay') & (df['ExitSpeed'] >= 95)]  # HardHit
+]
+
+def plot_zones(base_ax, side_df, side_title):
+    for i, (label, data_filter) in enumerate(zip(zone_titles, zone_data_filters)):
+        inset_ax = base_ax.inset_axes([i * 0.33 + 0.01, 0.02, 0.32, 0.96])
+
+
+        zone_df = data_filter(side_df)
+        for pitch_type in zone_df['TaggedPitchType'].unique():
+            pt_df = zone_df[zone_df['TaggedPitchType'] == pitch_type]
+            inset_ax.scatter(pt_df['PlateLocSide'], pt_df['PlateLocHeight'],
+                             color=pitch_colors.get(pitch_type, 'gray'), s=20, alpha=0.8)
+
+        # Strike zone box
+        rect = patches.Rectangle((zone_params['x'], zone_params['y']),
+                                 zone_params['width'], zone_params['height'],
+                                 linewidth=1.5, edgecolor='black', facecolor='none')
+        inset_ax.add_patch(rect)
+
+        inset_ax.set_xlim(x_limits)
+        inset_ax.set_ylim(y_limits)
+        inset_ax.set_xticks([])
+        inset_ax.set_yticks([])
+        inset_ax.set_aspect('equal')
+        title_text = f"{label}\n{side_title}" if label == 'Whiff' else label
+        inset_ax.set_title(title_text, fontsize=9, weight='bold' if label == 'Whiff' else 'normal')
+
+# Filter LHH and RHH
+df_lhh = df[df['BatterSide'] == 'Left']
+df_rhh = df[df['BatterSide'] == 'Right']
+
+# Plot 3 strike zone heatmaps per side
+def plot_zones_side_by_side(ax, df_lhh, df_rhh):
+    side_titles = ['vs LHH', 'vs RHH']
+    dfs = [df_lhh, df_rhh]
+    
+    for side_idx, side_df in enumerate(dfs):
+        for i, (label, data_filter) in enumerate(zip(zone_titles, zone_data_filters)):
+            # Positioning within the full-width ax_zones: [left, bottom, width, height]
+            left = side_idx * 0.5 + i * (0.32 / 2) + 0.02
+            bottom = 0.05
+            width = 0.3 / 2
+            height = 0.9
+            
+            inset_ax = ax.inset_axes([left, bottom, width, height])
+            zone_df = data_filter(side_df)
+            
+            for pitch_type in zone_df['TaggedPitchType'].unique():
+                pt_df = zone_df[zone_df['TaggedPitchType'] == pitch_type]
+                inset_ax.scatter(pt_df['PlateLocSide'], pt_df['PlateLocHeight'],
+                                 color=pitch_colors.get(pitch_type, 'gray'), s=20, alpha=0.8)
+
+            # Strike zone box
+            rect = patches.Rectangle((zone_params['x'], zone_params['y']),
+                                     zone_params['width'], zone_params['height'],
+                                     linewidth=1.5, edgecolor='black', facecolor='none')
+            inset_ax.add_patch(rect)
+
+            inset_ax.set_xlim(x_limits)
+            inset_ax.set_ylim(y_limits)
+            inset_ax.set_xticks([])
+            inset_ax.set_yticks([])
+            inset_ax.set_aspect('equal')
+            title_text = f"{label}\n{side_titles[side_idx]}" 
+            inset_ax.set_title(title_text, fontsize=9, weight='bold')
+
+
+plot_zones_side_by_side(ax_zones, df_lhh, df_rhh)
+
+
+
+# === Pitch Type Legend Below Zones ===
+from matplotlib.lines import Line2D
+
+# Create custom legend handles from pitch_colors
+legend_handles = [
+    Line2D([0], [0], marker='o', color='w', markerfacecolor=color, markersize=10, label=pitch)
+    for pitch, color in pitch_colors.items()
+    if pitch in df['TaggedPitchType'].unique()
+]
+
+# Add a new horizontal axis below the strike zone plots
+legend_ax = fig.add_axes([0.25, 0.13, 0.5, 0.03])  # [left, bottom, width, height]
+legend_ax.axis('off')
+legend_ax.legend(handles=legend_handles, loc='center', ncol=len(legend_handles), frameon=False, fontsize=9)
+
+
+
+
+# === Pitch Table ===
+# === Pitch Table with Conditional Formatting ===
+ax_table = fig.add_subplot(gs[4, :])
+ax_table.axis('off')
+
+# Sort the pitch summary by % Thrown descending before displaying
+table_data = pitch_summary.reset_index().sort_values(by='% Thrown', ascending=False)
+col_labels = ["Pitch", "%", "Vel (Max)", "Spin", "iVB", "HB", "VAA", "Ext", "VRA", "CLASS+", "SwStr%", "Hard%"]
+
+cell_data = table_data.values.tolist()
+
+
+tbl = ax_table.table(
+    cellText=[[format_value(val, col_labels[j]) for j, val in enumerate(row)] for row in cell_data],
+    colLabels=col_labels,
+    cellLoc='center',
+    loc='center'
+)
+
+
+tbl.auto_set_font_size(False)
+tbl.set_fontsize(10)
+tbl.scale(1.2, 1.5)
+
+# Use Fastball and Curveball colors for conditional colormaps
+fastball_blue = pitch_colors["Fastball"]
+curveball_red = pitch_colors["Curveball"]
+
+for i, row in enumerate(cell_data):
+    pitch_type = row[0]
+    for j, val in enumerate(row):
+        cell = tbl[i+1, j]
+        if col_labels[j] == "Pitch":
+            face = pitch_colors.get(pitch_type, "#E0E0E0")
+        elif col_labels[j] == "CLASS+":
+            face = custom_blend_white_center(val, 70, 100, 120, fastball_blue, curveball_red)
+        elif col_labels[j] == "SwStr%":
+            face = custom_blend_white_center(val, 0, 13, 25, fastball_blue, curveball_red)
+        elif col_labels[j] == "Hard%":
+            face = custom_blend_white_center(val, 0, 45, 100, curveball_red, fastball_blue)
+        else:
+            continue  # Skip if no coloring rule
+
+        cell.set_facecolor(face)
+        cell.set_text_props(color=get_contrast_text_color(face))
+
+    
+
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.97])
+    plt.subplots_adjust(hspace=0.5, wspace=0.4)
+
+    return fig
+
+
+
+
+    with tab2:
+        import streamlit as st
+        import pandas as pd
+        import matplotlib.pyplot as plt
+        from your_visual_function_file import draw_single_game_report  # Update with your actual function file
+
+        # === Load and preprocess data ===
+        pitch_path = "2025_SEASON.csv"
+        class_path = "2025_CLASS+_by_date.csv"
+        pitch_df = pd.read_csv(pitch_path)
+        class_df = pd.read_csv(class_path)
+
+        pitch_df["Date"] = pd.to_datetime(pitch_df["Date"], errors="coerce")
+        class_df["Date"] = pd.to_datetime(class_df["Date"], errors="coerce")
+
+        # === UI Inputs ===
+        st.header("Single Game Report")
+
+        available_dates = sorted(pitch_df[pitch_df["PitcherTeam"] == "OLE_REB"]["Date"].dropna().unique())
+        selected_date = st.date_input(
+            "Select Game Date",
+            value=available_dates[-1],
+            min_value=min(available_dates),
+            max_value=max(available_dates)
+        )
+
+        pitchers_on_date = sorted(
+            pitch_df[
+                (pitch_df["PitcherTeam"] == "OLE_REB") &
+                (pitch_df["Date"] == pd.to_datetime(selected_date))
+            ]["Pitcher"].unique()
+        )
+        selected_pitcher = st.selectbox("Select Pitcher", pitchers_on_date)
+
+        ip = st.number_input("Enter Innings Pitched", min_value=0.0, max_value=9.0, step=0.1, value=1.0)
+
+        # === Trigger Report ===
+        if selected_pitcher and selected_date and ip > 0:
+            fig = draw_single_game_report(
+                pitcher_name=selected_pitcher,
+                input_game_date=pd.to_datetime(selected_date),
+                inngings_pitched=ip,
+                pitch_data=pitch_df,
+                class_data=class_df
+            )
+            st.pyplot(fig)
