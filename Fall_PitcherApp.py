@@ -1285,95 +1285,45 @@ def plot_release_and_approach_angles(pitcher_name, batter_side, strikes, balls, 
 
 
 
+tab1, tab2 = st.tabs(["Full Report", "Single Game Report"])
 
 
 
 
-# Generate heatmaps based on selections
-# Generate heatmaps based on selections
-plot_heatmaps(
-    pitcher_name, 
-    batter_side, 
-    strikes, 
-    balls, 
-    date_filter_option, 
-    selected_date, 
-    start_date, 
-    end_date,
-    heatmap_type  # Pass the selected heatmap type
-)
+with tab1:
+    # Generate heatmaps based on selections
+    plot_heatmaps(
+        pitcher_name, batter_side, strikes, balls,
+        date_filter_option, selected_date, start_date, end_date,
+        heatmap_type
+    )
 
+    generate_plate_discipline_table(
+        pitcher_name, batter_side, strikes, balls,
+        date_filter_option, selected_date, start_date, end_date
+    )
 
-# Generate and display the pitch traits and plate discipline tables
-generate_plate_discipline_table(
-    pitcher_name, 
-    batter_side, 
-    strikes, 
-    balls, 
-    date_filter_option, 
-    selected_date, 
-    start_date, 
-    end_date
-)
+    generate_pitch_traits_table(
+        pitcher_name, batter_side, strikes, balls,
+        date_filter_option, selected_date, start_date, end_date
+    )
 
-generate_pitch_traits_table(
-    pitcher_name, 
-    batter_side, 
-    strikes, 
-    balls, 
-    date_filter_option, 
-    selected_date, 
-    start_date, 
-    end_date
-)
+    generate_batted_ball_table(
+        pitcher_name, batter_side, strikes, balls,
+        date_filter_option, selected_date, start_date, end_date
+    )
 
-generate_batted_ball_table(
-    pitcher_name,
-    batter_side,
-    strikes,
-    balls,
-    date_filter_option,
-    selected_date,
-    start_date,
-    end_date
-)
+    plot_pitch_movement(
+        pitcher_name, batter_side, strikes, balls,
+        date_filter_option, selected_date, start_date, end_date
+    )
 
+    generate_rolling_line_graphs(
+        rolling_df, pitcher_name, batter_side, strikes, balls,
+        date_filter_option, selected_date, start_date, end_date
+    )
 
-# Call the function in your Streamlit app
-plot_pitch_movement(
-    pitcher_name, 
-    batter_side, 
-    strikes, 
-    balls, 
-    date_filter_option, 
-    selected_date, 
-    start_date, 
-    end_date
-)
-
-
-# Generate rolling line graphs based on selected metrics and pitch types
-generate_rolling_line_graphs(
-    rolling_df,
-    pitcher_name,
-    batter_side,
-    strikes,
-    balls,
-    date_filter_option,
-    selected_date,
-    start_date,
-    end_date
-)
-
-
-# Call the function at the bottom of your Streamlit app
-plot_release_and_approach_angles(
-    pitcher_name, 
-    batter_side, 
-    strikes, 
-    balls, 
-    date_filter_option, 
-    selected_date, 
-    start_date, 
-    end_date
-)
+    plot_release_and_approach_angles(
+        pitcher_name, batter_side, strikes, balls,
+        date_filter_option, selected_date, start_date, end_date
+    )
