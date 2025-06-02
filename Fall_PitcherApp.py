@@ -249,7 +249,7 @@ def plot_heatmaps(pitcher_name, batter_side, strikes, balls, date_filter_option,
         
         # Limit number of subplots per row (e.g., 3 per row)
         n_pitch_types = len(unique_pitch_types)
-        plots_per_row = 3  # Set number of plots per row
+        plots_per_row = 4  # Set number of plots per row
         n_rows = math.ceil(n_pitch_types / plots_per_row)  # Calculate the number of rows needed
         
         # Adjust figure size dynamically
