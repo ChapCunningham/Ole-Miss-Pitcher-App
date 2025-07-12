@@ -743,7 +743,7 @@ color_dict = {
     'Slider': 'green',
     'Curveball': 'red',
     'Cutter': 'orange',
-    'ChangeUp': 'purple',
+    'ChangeUp': 'pink',
     'Splitter': 'teal',
     'Unknown': 'black',
     'Other': 'black'
@@ -781,7 +781,7 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
             'Slider': 'mediumseagreen',
             'Curveball': 'firebrick',
             'Cutter': 'darkorange',
-            'ChangeUp': 'mediumpurple',
+            'ChangeUp': 'pink',
             'Splitter': 'teal',
             'Unknown': 'black',
             'Other': 'black'
@@ -1043,7 +1043,7 @@ def generate_rolling_line_graphs(
             'Slider': 'green',
             'Curveball': 'red',
             'Cutter': 'orange',
-            'ChangeUp': 'purple',
+            'ChangeUp': 'pink',
             'Splitter': 'teal',
             'Unknown': 'black',
             'Other': 'black'
@@ -1194,7 +1194,7 @@ def plot_release_and_approach_angles(pitcher_name, batter_side, strikes, balls, 
             'Slider': 'mediumseagreen',
             'Curveball': 'firebrick',
             'Cutter': 'darkorange',
-            'ChangeUp': 'mediumpurple',
+            'ChangeUp': 'pink',
             'Splitter': 'teal',
             'Unknown': 'black',
             'Other': 'black'
